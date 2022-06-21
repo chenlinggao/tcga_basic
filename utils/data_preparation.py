@@ -17,7 +17,7 @@ from glob import glob
 from tqdm import tqdm
 from random import shuffle
 
-from tools import TrainValidTestSplit, TrainValidTestSplit_k_fold
+from utils.tools import TrainValidTestSplit, TrainValidTestSplit_k_fold, message_output
 
 
 class PrepareTileSet:
@@ -27,8 +27,9 @@ class PrepareTileSet:
     """
     def __init__(self, config):
         self.cfg = config
-        self.csv_root = os.path.join(config.documents_root, 'slides_tiles_csv')
-        self.gene_df = pd.read_csv(os.path.join(config.documents_root, 'fused_slides_gene_info.csv'))
+        self.documents_root = os.path.join(config.data_root, 'documents')
+        self.csv_root = os.path.join(self.documents_root, 'slides_tiles_csv')
+        self.gene_df = pd.read_csv(os.path.join(self.documents_root, 'fused_slides_gene_info.csv'))
         self.gene_slide_ids = self.gene_df.slide_id.to_list()
         self.output_df = None
 
@@ -40,7 +41,7 @@ class PrepareTileSet:
         splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
                                       stratify_name=self.cfg.target_label_name, names='tt')
         self.gene_df = splitor.fit()
-        self.gene_df.to_csv(os.path.join(self.cfg.documents_root, 'fused_slides_gene_info.csv'), index=False)
+        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info.csv'), index=False)
         self.gene_df = self.gene_df[self.gene_df.phase == 'train'].reset_index(drop=True)
 
     def preprocess_tile_csv(self, tile_df):
@@ -78,11 +79,12 @@ class PrepareTileSet:
             splitor = TrainValidTestSplit(data_csv=df, ratio=[8, 2], stratify_name=self.cfg.target_label_name,
                                           random_state=self.cfg.random_state)
         else:
-            splitor = TrainValidTestSplit_k_fold(data_csv=self.gene_df, k_fold=self.cfg.cv,
+            splitor = TrainValidTestSplit_k_fold(data_csv=df, k_fold=self.cfg.cv,
                                                  stratify_name=self.cfg.target_label_name)
         df = splitor.fit()
-        df.to_csv(os.path.join(self.cfg.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)), index=False)
-        with open(os.path.join(self.cfg.documents_root, 'train_dataset_{}.pkl'.format(self.cfg.task)), 'wb') as f:
+        df['phase'] = df.phase.apply(lambda x: int(x))
+        df.to_csv(os.path.join(self.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)), index=False)
+        with open(os.path.join(self.documents_root, 'train_dataset_{}.pkl'.format(self.cfg.task)), 'wb') as f:
             pickle.dump(df, f)
 
     def sample_(self, input_df):
@@ -96,7 +98,7 @@ class PrepareTileSet:
 
 def fuse_slides_tmb_info(config):
     """把slide信息和tmb信息合并在一起"""
-    documents_root = config.documents_root
+    documents_root = os.path.join(config.data_root, 'documents')
     slides_df = pd.read_csv(os.path.join(documents_root, 'all_slides_info.csv'))
     tmb_df = pd.read_csv(os.path.join(documents_root, 'gene_info.csv'))
 
@@ -123,7 +125,7 @@ def fuse_slides_tmb_info(config):
         slides_df.loc[target_df_index, 'survival_overall'] = target_tmb_row.survival_overall.to_list()[0]
 
     slides_df.to_csv(os.path.join(documents_root, 'fused_slides_gene_info.csv'), index=False)
-
+    return 0
 
 def setting_config():
     parser = argparse.ArgumentParser()
@@ -136,6 +138,14 @@ def setting_config():
 
     return parser.parse_args()
 
+def preparation4csv(args, input_logger):
+    message_output("\n{:-^50}".format(" Preparing CSVs "), input_logger)
+    fuse_slides_tmb_info(args)
+    # if pass_flag:
+        # message_output("[Warning]: Finished before", input_logger)
+    # else:
+    #     PrepareTileSet(args).fit()
+    PrepareTileSet(args).fit()
 
 def main():
     args = setting_config()
@@ -144,9 +154,6 @@ def main():
     args.documents_root = '/home/msi/chenlinghao/future/tcga_colon/data/tumor/1_512/tiles/documents'
     args.target_label_name = 'tmb_label'
     fuse_slides_tmb_info(args)
-
-    # split all_slides_info.csv to train_test
-
 
     if args.task == 'tile':
         PrepareTileSet(config=args).fit()

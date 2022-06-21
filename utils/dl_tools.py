@@ -10,8 +10,7 @@ from random import shuffle
 import numpy as np
 import torch
 from torch import nn, optim
-# from timm import optim
-from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import WarmUpLR
 from sklearn.metrics import accuracy_score, recall_score, roc_auc_score, f1_score, precision_score, roc_curve, auc
 from sklearn.metrics import confusion_matrix
 
@@ -70,7 +69,7 @@ class EMA:
 
 
 class EarlyStopper:
-    def __init__(self, phase='loss', patience=7, delta=0.5, logger=None):
+    def __init__(self, phase='loss', patience=7, delta=0.5, logger=None, work=None):
         """
 
         :param phase:
@@ -92,6 +91,7 @@ class EarlyStopper:
         self.save_flag = False
 
         self.logger = logger
+        self.work = work
 
     def __call__(self, input_value):
         score = self.preprocess_input_value(input_value)
@@ -104,10 +104,13 @@ class EarlyStopper:
         elif (self.best_score - self.delta) < score < (self.best_score + self.delta):
             # 不满足条件的score
             self.counter += 1
-            if self.logger is not None:
-                self.logger.info(f'EarlyStopping counter: [{self.counter} / {self.patience}]')
-            else:
-                print(f'EarlyStopping counter: [{self.counter} / {self.patience}]')
+
+            # 当work为True则打印, 否则不打印
+            if self.work:
+                if self.logger is not None:
+                    self.logger.info(f'EarlyStopping counter: [{self.counter} / {self.patience}]')
+                else:
+                    print(f'EarlyStopping counter: [{self.counter} / {self.patience}]')
             if self.counter >= self.patience:
                 self.save_flag = False
                 self.early_stop = True
@@ -178,14 +181,6 @@ class ModelComponent:
         self.cfg = input_config
         self.logger = logger
 
-    # def output_component(self):
-    #     criterion = self.get_criterion()
-    #     optimizer = self.get_optimizer(model)
-    #     warm_up_scheduler, scheduler = self.get_scheduler(optimizer)
-    #     early_stopper = self.get_early_stopper()
-    #     # self.component_info()
-    #     return criterion, optimizer, warm_up_scheduler, scheduler, early_stopper
-
     def get_criterion(self):
         if self.cfg.criterion == "mse":
             return nn.MSELoss()
@@ -212,22 +207,28 @@ class ModelComponent:
             raise NotImplementedError
 
     def get_early_stopper(self):
+        early_stop_work = True if self.cfg.early_stop_patience < self.cfg.epochs else False
         output = EarlyStopper(phase=self.cfg.early_stop_standard,
                               patience=self.cfg.early_stop_patience,
-                              delta=self.cfg.early_stop_delta)
+                              delta=self.cfg.early_stop_delta,
+                              logger=self.logger,
+                              work=early_stop_work)
         return output
 
     def get_scheduler(self, optimizer):
         warm_up_scheduler, scheduler = None, None
         if self.cfg.warm_up_epochs > 0:
-            warm_up_scheduler = ...
+            warm_up_scheduler = WarmUpLR(optimizer=optimizer,
+                                         total_iters=self.cfg.warm_up_epochs)
 
         if self.cfg.scheduler == "cosine":
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
                                                              T_max=self.cfg.epochs)
         elif self.cfg.scheduler == "cosine_restart":
+            warm_up_scheduler = None
             scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                        T_0=5, T_mult=10)
+
 
         return [warm_up_scheduler, scheduler]
 
@@ -280,18 +281,17 @@ class ResultReport:
         return result_dict
 
     def calculate_single_result(self, method_name):
-        if method_name == 'Accuracy':
+        if method_name.lower() == 'accuracy':
             return accuracy_score(self.gt, self.pred)
-        elif method_name == 'Precision':
+        elif method_name.lower() == 'precision':
             return precision_score(self.gt, self.pred)
-        elif method_name == 'Recall':
+        elif method_name.lower() == 'recall':
             return recall_score(self.gt, self.pred)
-        elif method_name == 'F1':
+        elif method_name.lower() == 'f1':
             return f1_score(self.gt, self.pred)
-        elif method_name == 'Sensitivity':
+        elif method_name.lower() == 'sensitivity':
             return recall_score(self.gt, self.pred)
-        elif method_name == 'Specificity':
+        elif method_name.lower() == 'specificity':
             return self.calculate_specificity(self.gt, self.pred)
-        elif method_name == 'AUC':
-            """得改，这里应该是概率"""
+        elif method_name.lower() == 'auc':
             return roc_auc_score(self.gt, self.pred_prob)

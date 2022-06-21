@@ -8,7 +8,8 @@ import timm
 from torchvision import models
 
 def get_classifier(config):
-    model = timm.create_model(model_name=config.backbone, pretrained=config.pretrained)
+    model = timm.create_model(model_name=config.backbone, pretrained=config.pretrained,
+                              num_classes=config.num_classes)
     return model
 
 # def load_dict(checkpoint, )

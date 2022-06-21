@@ -22,7 +22,7 @@
 
 ### 2.2. 建立dataset
  **对于test的dataset应另外设置**
-- [ ] 基于tile建立dataset
+- [x] 基于tile建立dataset
 - [ ] 基于mil建立dataset
 
 ## 3. training
@@ -32,6 +32,10 @@
   
 - [ ] 基于mil的trainer
 - [ ] 基于mil的test
+
+#### 4. 可视化
+- [ ] 训练集合tile的分布情况
+- [ ] 
 
 ### 文件结构
 

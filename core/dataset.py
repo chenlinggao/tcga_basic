@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 
 
 train_transforms = F.Compose([F.ToPILImage(),
-                              F.RandomCrop(size=())])
+                              F.RandomCrop(size=(500, 500))])
 
 test_transforms = F.Compose([F.ToPILImage(),
                              F.ToTensor(),
@@ -31,8 +31,7 @@ class TileDataset(Dataset):
         self.cfg = config
         self.phase = phase
 
-        csv_src = os.path.join(config.data_root, "{}_{}".format(config.magnification, config.tile_size),
-                               'documents')
+        csv_src = os.path.join(config.data_root, 'documents')
 
         tile_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_{}.csv'.format(self.cfg.task)))
         if phase == 'train':
@@ -49,11 +48,11 @@ class TileDataset(Dataset):
         img_path, label = self._get_info(self.target_df.loc[item, :])
 
         img = cv2.imread(img_path)
-        img = cv2.resize(img, (512, 512, 3))
+        img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = self.transforms(img)
 
-        if isinstance(label, int):
+        if not isinstance(label, int):
             label = int(label)
 
         return img, label
@@ -63,7 +62,7 @@ class TileDataset(Dataset):
         slide_id = input_df.slide_id.split('.')[0]
         tile_label = input_df[self.cfg.target_label_name]
 
-        tile_src = os.path.join(self.cfg.data_root, slide_id, tile_id+'.png')
+        tile_src = os.path.join(self.cfg.data_root, 'data', slide_id, tile_id+'.png')
         return tile_src, tile_label
 
     def __len__(self):
@@ -80,7 +79,7 @@ class MILDataset(Dataset):
         self.transforms = transforms
 
 
-param_dataloader = dict(pin_memory=True, num_workers=4)
+param_dataloader = dict(pin_memory=True, num_workers=0)
 def dataloader(config, k=0):
     if config.task == 'tile':
         train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)

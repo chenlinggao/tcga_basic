@@ -28,7 +28,7 @@ class TileTrainer(BasicTrainer):
 
         epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs + 1,
                                                                                               train_loss, valid_loss,
-                                                                                              self.cfg.standard,
+                                                                                              self.cfg.metric,
                                                                                               train_metric, valid_metric)
         self.logger.info(epoch_string)
 
@@ -116,7 +116,8 @@ class TileTrainer(BasicTrainer):
         pred_probs = pred_labels[:, -1].detach().cpu().numpy()
         pred_labels = (pred_labels.float() > 0.5)
         pred_labels = pred_labels[:, 1].cpu().numpy()
-        metric_ = ResultReport(pred_labels, labels, pred_probabilities=pred_probs).calculate_single_result(self.cfg.metric)
+        metric_ = ResultReport(pred_labels, labels,
+                               pred_probabilities=pred_probs).calculate_single_result(self.cfg.metric)
         return metric_
 
 

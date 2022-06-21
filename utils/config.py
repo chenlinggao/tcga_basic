@@ -8,7 +8,7 @@ import os
 import argparse
 from distutils.util import strtobool
 
-from tools import message_output
+from utils.tools import message_output
 
 
 class _BasicConfig(object):
@@ -17,6 +17,7 @@ class _BasicConfig(object):
 
         self.path_parser = self.parser.add_argument_group(title="[Path Setting]")
         self.others_parser = self.parser.add_argument_group(title="[Others Setting]")
+        self.others_parser.add_argument("--random_state", type=int, default=2022)
 
     def _fit_all_config(self):
         return self.parser.parse_args()
@@ -78,8 +79,8 @@ class TrainConfig(_BasicConfig):
         self.task_parser.add_argument("--target_label_name", default="tmb_label", help="[Options]: 'tmb_label', 'tmb_score'")
         self.task_parser.add_argument("--magnification", default=1, type=int, help="病理图的放大倍数，用于计算合适的target_level")
         self.task_parser.add_argument("--tile_size", default=1024, type=int, help="tile的大小")
-        # self.task_parser.add_argument("--", default=, type=, help="[]: ")
-        # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
+        self.task_parser.add_argument("--resize_img", default=512, type=int, help="[]: ")
+        self.task_parser.add_argument("--slide_max_tiles", default=2000, type=int, help="[]: 每个slide最多拿出的tile的数量")
 
     def add_path_config(self):
         self.path_parser.add_argument("--data_root", default="/home/msi/disk3/tcga", help="所有图片数据的根目录")
@@ -87,9 +88,10 @@ class TrainConfig(_BasicConfig):
 
     def add_hyper_config(self):
         self.hyper_parser.add_argument("--epochs", default=200, type=int, help="[]: ")
-        self.hyper_parser.add_argument("--batch_size", default=128, type=int, help="[]: ")
+        self.hyper_parser.add_argument("--batch_size", default=50, type=int, help="[]: ")
         self.hyper_parser.add_argument("--learning_rate", default=3e-3, type=float, help="[]: ")
         self.hyper_parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]: ")
+        self.hyper_parser.add_argument("--metric", default="f1")
         # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
         # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
 
@@ -99,7 +101,7 @@ class TrainConfig(_BasicConfig):
         self.component_parser.add_argument("--criterion", default='ce', help="[]: ")
         self.component_parser.add_argument("--optimizer", default='adam', help="[]: ")
         self.component_parser.add_argument("--scheduler", default='cosine', help="[]: ")
-        self.component_parser.add_argument("--warm_up_epochs", default=20, type=int, help="[]: ")
+        self.component_parser.add_argument("--warm_up_epochs", default=0, type=int, help="[]: ")
 
         # self.component_parser.add_argument("--ema", default=, type=, help="[]: ")
         self.component_parser.add_argument("--early_stop_standard", default='loss', help="[]: ")
@@ -110,9 +112,11 @@ class TrainConfig(_BasicConfig):
         self.others_parser.add_argument("--train", default=1, type=lambda x: bool(strtobool(x)), help="")
         self.others_parser.add_argument("--debug", default=0, type=lambda x: bool(strtobool(x)), help="")
         self.others_parser.add_argument("--cv", default=5, type=int, help="交叉验证, 常用: 5, 10")
+        self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)), help="是否适用交叉验证")
+        self.others_parser.add_argument("--print_interval", default=10, type=int, help="")
 
     def _fit_all_config(self):
-        self.add_path_config()
+        # self.add_path_config()
         self.add_task_config()
         self.add_hyper_config()
         self.add_component_config()
@@ -151,12 +155,19 @@ class TestConfig(_BasicConfig):
         self.add_others_config()
         return self.parser.parse_args()
 
-def args_printer(args, input_logger):
+def args_printer(args, input_logger, filter_=None):
     """打印args信息"""
+    if filter_ is None:
+        filter_ = ['epochs', 'backbone', 'train', 'version_name']
+
     input_logger.info("{:-^100}".format("Setting"))
     for k, v in vars(args).items():
         output_string = "{: >20} ==> {}".format(k, v)
+        if k in filter_:
+            output_string = '{}\n'.format('-'*50) + output_string
         message_output(input_string=output_string, input_logger=input_logger)
+    # message_output(input_string='\n', input_logger=input_logger)
+
 
 def output_version_name(args):
     p = args
