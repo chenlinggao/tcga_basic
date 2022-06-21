@@ -1,0 +1,113 @@
+# !usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time     : 下午6:49
+# @Author   : ChenLingHao
+# @File     : dataset.py
+import os
+import pandas as pd
+import _pickle as pickle
+
+from cv2 import cv2
+import matplotlib.pyplot as plt
+
+import torch
+from torchvision.transforms import transforms as F
+from torch.utils.data import DataLoader, Dataset
+
+
+train_transforms = F.Compose([F.ToPILImage(),
+                              F.RandomCrop(size=())])
+
+test_transforms = F.Compose([F.ToPILImage(),
+                             F.ToTensor(),
+                             F.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                            ])
+
+
+class TileDataset(Dataset):
+    def __init__(self, config, phase='train', transforms=None, fold=0):
+        """先确定csv的结构"""
+        self.cfg = config
+        self.phase = phase
+
+        csv_src = os.path.join(config.data_root, "{}_{}".format(config.magnification, config.tile_size),
+                               'documents')
+
+        tile_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_{}.csv'.format(self.cfg.task)))
+        if phase == 'train':
+            self.target_df = tile_df[tile_df.phase != fold].reset_index(drop=True)
+        else:
+            self.target_df = tile_df[tile_df.phase == fold].reset_index(drop=True)
+
+        self.transforms = transforms
+
+        if not config.train and config.debug:
+            self.target_df = self.target_df[:int(0.2*len(self.target_df))]  # 如果debug状态, 测试模型有效性
+
+    def __getitem__(self, item):
+        img_path, label = self._get_info(self.target_df.loc[item, :])
+
+        img = cv2.imread(img_path)
+        img = cv2.resize(img, (512, 512, 3))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = self.transforms(img)
+
+        if isinstance(label, int):
+            label = int(label)
+
+        return img, label
+
+    def _get_info(self, input_df):
+        tile_id = input_df.tile_id
+        slide_id = input_df.slide_id.split('.')[0]
+        tile_label = input_df[self.cfg.target_label_name]
+
+        tile_src = os.path.join(self.cfg.data_root, slide_id, tile_id+'.png')
+        return tile_src, tile_label
+
+    def __len__(self):
+        return len(self.target_df)
+
+
+class MILDataset(Dataset):
+    def __init__(self, config, phase='train', transforms=None, fold=0):
+        """先确定csv的结构"""
+        self.cfg = config
+        self.phase = phase
+        tile_df = pd.read_csv(os.path.join(self.cfg.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)))
+        self.target_df = tile_df[tile_df.phase == phase].reset_index(drop=True)
+        self.transforms = transforms
+
+
+param_dataloader = dict(pin_memory=True, num_workers=4)
+def dataloader(config, k=0):
+    if config.task == 'tile':
+        train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
+        valid_set = TileDataset(config, 'valid', transforms=test_transforms, fold=k)
+        train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
+        valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
+    else:
+        train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
+        valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
+        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
+        valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
+    return train_loader, valid_loader
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
