@@ -26,7 +26,7 @@ class TileTrainer(BasicTrainer):
         train_loss, train_metric = self._train(train_loader, epoch)
         valid_loss, valid_metric = self._valid(valid_loader, epoch)
 
-        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs + 1,
+        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs,
                                                                                               train_loss, valid_loss,
                                                                                               self.cfg.metric,
                                                                                               train_metric, valid_metric)

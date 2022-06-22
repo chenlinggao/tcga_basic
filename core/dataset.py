@@ -79,7 +79,7 @@ class MILDataset(Dataset):
         self.transforms = transforms
 
 
-param_dataloader = dict(pin_memory=True, num_workers=0)
+param_dataloader = dict(pin_memory=False, num_workers=0)
 def dataloader(config, k=0):
     if config.task == 'tile':
         train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)

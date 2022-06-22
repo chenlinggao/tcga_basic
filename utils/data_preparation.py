@@ -10,6 +10,7 @@
     test_dataset
 """
 import os
+import h5py
 import argparse
 import pandas as pd
 import _pickle as pickle
@@ -96,6 +97,36 @@ class PrepareTileSet:
         return sampled_df
 
 
+class PrepareMilSet(PrepareTileSet):
+    def __init__(self, config):
+        super().__init__(config)
+        # self.data_save_type = config.data_save_type
+
+    def preprocess_slides_info_csv_k_fold(self):
+        self.preprocess_slides_info_csv()
+        if self.cfg.cv >= 2:
+            splitor = TrainValidTestSplit_k_fold(data_csv=self.gene_df, k_fold=self.cfg.cv,
+                                                 stratify_name=self.cfg.target_label_name, colmun_name='phase')
+        else:
+            splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
+                                      stratify_name=self.cfg.target_label_name, names='tt')
+        self.gene_df = splitor.fit()
+        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info.csv'), index=False)
+
+        output = self.gene_df[self.gene_df.phase != 'test'].reset_index(drop=True)
+        return output
+
+    def fit(self):
+        # 将slide分成交叉验证的三个部分
+        train_valid_df = self.preprocess_slides_info_csv_k_fold()
+
+        # 将提取每个slide的tile的特征，并集成在一个pkl/h5中
+        for idx, slide_id in enumerate(self.gene_df.slide_id):
+            tile_folder = os.path.join(self.cfg.data_root, 'data', slide_id)
+            tiles_dst = glob(tile_folder+'/*.png')
+
+
+
 def fuse_slides_tmb_info(config):
     """把slide信息和tmb信息合并在一起"""
     documents_root = os.path.join(config.data_root, 'documents')
@@ -151,7 +182,7 @@ def main():
     args = setting_config()
     args.task = 'tile'
     args.slide_max_tiles = 20
-    args.documents_root = '/home/msi/chenlinghao/future/tcga_colon/data/tumor/1_512/tiles/documents'
+    args.data_root = '/home/msi/chenlinghao/future/tcga_colon/data/tumor/1_512/tiles'
     args.target_label_name = 'tmb_label'
     fuse_slides_tmb_info(args)
 

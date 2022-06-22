@@ -76,9 +76,12 @@ class TrainConfig(_BasicConfig):
 
     def add_task_config(self):
         self.task_parser.add_argument("--task", default='tile', help="[Options]: 'tile', 'mil'")
-        self.task_parser.add_argument("--target_label_name", default="tmb_label", help="[Options]: 'tmb_label', 'tmb_score'")
-        self.task_parser.add_argument("--magnification", default=1, type=int, help="病理图的放大倍数，用于计算合适的target_level")
-        self.task_parser.add_argument("--tile_size", default=1024, type=int, help="tile的大小")
+        self.task_parser.add_argument("--target_label_name", default="tmb_label",
+                                      help="[Options]: 'tmb_label', 'tmb_score'")
+        self.task_parser.add_argument("--magnification", default=1, type=int,
+                                      help="病理图的放大倍数，用于计算合适的target_level")
+        self.task_parser.add_argument("--tile_size", default=1024, type=int,
+                                      help="tile的大小")
         self.task_parser.add_argument("--resize_img", default=512, type=int, help="[]: ")
         self.task_parser.add_argument("--slide_max_tiles", default=2000, type=int, help="[]: 每个slide最多拿出的tile的数量")
 
@@ -87,11 +90,11 @@ class TrainConfig(_BasicConfig):
         self.path_parser.add_argument("--document_root", default="../documents", help="所有文件数据的根目录")
 
     def add_hyper_config(self):
-        self.hyper_parser.add_argument("--epochs", default=200, type=int, help="[]: ")
-        self.hyper_parser.add_argument("--batch_size", default=50, type=int, help="[]: ")
-        self.hyper_parser.add_argument("--learning_rate", default=3e-3, type=float, help="[]: ")
+        self.hyper_parser.add_argument("-e", "--epochs", default=20, type=int, help="[]: 迭代次数")
+        self.hyper_parser.add_argument("-b", "--batch_size", default=128, type=int, help="[]: batch的大小")
+        self.hyper_parser.add_argument("-lr", "--learning_rate", default=3e-4, type=float, help="[]: 学习率")
         self.hyper_parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]: ")
-        self.hyper_parser.add_argument("--metric", default="f1")
+        self.hyper_parser.add_argument("--metric", default="f1", help="[]: ")
         # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
         # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
 
@@ -112,7 +115,7 @@ class TrainConfig(_BasicConfig):
         self.others_parser.add_argument("--train", default=1, type=lambda x: bool(strtobool(x)), help="")
         self.others_parser.add_argument("--debug", default=0, type=lambda x: bool(strtobool(x)), help="")
         self.others_parser.add_argument("--cv", default=5, type=int, help="交叉验证, 常用: 5, 10")
-        self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)), help="是否适用交叉验证")
+        self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)), help="是否使用交叉验证")
         self.others_parser.add_argument("--print_interval", default=10, type=int, help="")
 
     def _fit_all_config(self):
@@ -164,18 +167,18 @@ def args_printer(args, input_logger, filter_=None):
     for k, v in vars(args).items():
         output_string = "{: >20} ==> {}".format(k, v)
         if k in filter_:
-            output_string = '{}\n'.format('-'*50) + output_string
+            output_string_ = '{}\n'.format('-'*50)
+            message_output(output_string_, input_logger)
         message_output(input_string=output_string, input_logger=input_logger)
-    # message_output(input_string='\n', input_logger=input_logger)
 
 
 def output_version_name(args):
     p = args
-    name = "{}_{}_{}_{}".format(
+    name = "{}_{}_{}_{}_{}".format(
         p.task, p.backbone, p.target_label_name, p.batch_size, p.learning_rate
     )
     if p.task == 'mil':
-        name = "{}_{}_{}_{}".format(
+        name = "{}_{}_{}_{}_{}_{}".format(
         p.task, p.mil_method, p.backbone, p.target_label_name, p.batch_size, p.learning_rate
     )
     return name
