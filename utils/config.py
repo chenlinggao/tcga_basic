@@ -112,11 +112,16 @@ class TrainConfig(_BasicConfig):
         self.component_parser.add_argument("--early_stop_delta", default=3e-4, type=float, help="[]: ")
 
     def add_others_config(self):
-        self.others_parser.add_argument("--train", default=1, type=lambda x: bool(strtobool(x)), help="")
-        self.others_parser.add_argument("--debug", default=0, type=lambda x: bool(strtobool(x)), help="")
-        self.others_parser.add_argument("--cv", default=5, type=int, help="交叉验证, 常用: 5, 10")
-        self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)), help="是否使用交叉验证")
-        self.others_parser.add_argument("--print_interval", default=10, type=int, help="")
+        self.others_parser.add_argument("--train", default=1, type=lambda x: bool(strtobool(x)),
+                                        help="if set true, will train the model")
+        self.others_parser.add_argument("--partial", default=1, type=lambda x: bool(strtobool(x)),
+                                        help="if set true, use 20% data to train the model")
+        self.others_parser.add_argument("--cv", default=5, type=int,
+                                        help="set number of fold for cross validation, usually[5, 10]")
+        self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)),
+                                        help="if set true, use cross validation")
+        self.others_parser.add_argument("--print_interval", default=10,
+                                        type=int, help="setting for print batch information ")
 
     def _fit_all_config(self):
         # self.add_path_config()

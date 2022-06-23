@@ -4,7 +4,8 @@ epochs=30
 batch_size=128
 learning_rate=3e-4
 #metric=f1
-#backbone=resnet18
+backbone=resnet18
+partial=1
 
 #task=tile
 #target_label_name=tmb_label
@@ -17,9 +18,8 @@ learning_rate=3e-4
 #early_stop_patience=200
 #
 #train=1
-#debug=0
 #use_cv=0
 #print_interval=0
 
-python train_eval.py -e $epochs -b $batch_size -lr $learning_rate
+python train_eval.py -e $epochs -b $batch_size -lr $learning_rate --partial $partial
 

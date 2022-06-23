@@ -151,6 +151,7 @@ class TrainValidTestSplit:
         if names is None:
             names = ['train', 'test']
         indexes = input_df.index.to_list()
+        shuffle(indexes)
         if self.stratify_name is not None:
             labels = input_df[self.stratify_name].to_list()
             X_train, X_test = train_test_split(indexes, test_size=ratio[1] / ratio[0],
