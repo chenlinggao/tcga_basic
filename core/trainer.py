@@ -73,7 +73,7 @@ class TileTrainer(BasicTrainer):
                 self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
                                                                                                  loss.item(),
                                                                                                  self.cfg.metric, metric_))
-                self.tb.add_scalars('interval/loss', {'train': losses.avg}, self.print_counter)
+                self.tb.add_scalars('interval/train_loss', {'train': losses.avg}, self.print_counter)
                 self.print_counter += 1
 
             self.optimizer.zero_grad()
@@ -100,15 +100,18 @@ class TileTrainer(BasicTrainer):
             losses.update(loss.item(), self.cfg.batch_size)
             metrics.update(metric_, self.cfg.batch_size)
 
-            if idx % self.cfg.print_interval == 0:
-                self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(valid_loader),
+            # if idx % self.cfg.print_interval == 0:
+            if idx % (len(valid_loader//4)) == 0:   # valid只打印四次
+                self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx,
+                                                                                                 len(valid_loader),
                                                                                                  loss.item(),
-                                                                                                 self.cfg.metric, metric_))
-                self.tb.add_scalars('interval/loss', {'train': losses.avg}, self.print_counter)
+                                                                                                 self.cfg.metric,
+                                                                                                 metric_))
+                self.tb.add_scalars('interval/valid_loss', {'valid': losses.avg}, self.print_counter)
                 self.print_counter += 1
 
-        self.tb.add_scalars("epoch/loss", {'train': losses.avg}, epoch)
-        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'train': metrics.avg}, epoch)
+        self.tb.add_scalars("epoch/loss", {'valid': losses.avg}, epoch)
+        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'valid': metrics.avg}, epoch)
         return losses.avg, metrics.avg
 
     def outputs2label(self, outputs, labels):

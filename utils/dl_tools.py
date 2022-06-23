@@ -63,6 +63,9 @@ class BasicTrainer:
     def get_model(self):
         return None
 
+    def printer(self):
+        # 输出到tensorboard之类的
+        ...
 
 class EMA:
     ...
