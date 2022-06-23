@@ -64,6 +64,9 @@ class BasicTrainer:
     def get_model(self):
         return None
 
+    def printer(self):
+        ...
+
 
 class EMA:
     ...

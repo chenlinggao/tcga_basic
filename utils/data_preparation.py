@@ -127,7 +127,7 @@ class PrepareMilSet(PrepareTileSet):
 
 
 
-def fuse_slides_tmb_info(config):
+def fuse_slides_tmb_info(config, input_logger):
     """把slide信息和tmb信息合并在一起"""
     documents_root = os.path.join(config.data_root, 'documents')
     slides_df = pd.read_csv(os.path.join(documents_root, 'all_slides_info.csv'))
@@ -140,7 +140,7 @@ def fuse_slides_tmb_info(config):
         target_tmb_row = tmb_df[tmb_df.Patient_ID.isin([case_id])]
         if target_tmb_row.empty:
             o_msg = "[Warning] [{}] Not Exist, and pass it".format(slide_id)
-            print(o_msg)
+            input_logger.warning(o_msg)
 
             # empty_index = target_df_index
             slides_df = slides_df.drop(target_df_index)
@@ -171,7 +171,7 @@ def setting_config():
 
 def preparation4csv(args, input_logger):
     message_output("\n{:-^50}".format(" Preparing CSVs "), input_logger)
-    fuse_slides_tmb_info(args)
+    fuse_slides_tmb_info(args, input_logger)
     # if pass_flag:
         # message_output("[Warning]: Finished before", input_logger)
     # else:
