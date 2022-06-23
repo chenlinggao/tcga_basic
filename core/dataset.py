@@ -4,6 +4,8 @@
 # @Author   : ChenLingHao
 # @File     : dataset.py
 import os
+from abc import ABC
+
 import pandas as pd
 import _pickle as pickle
 
@@ -33,7 +35,7 @@ class TileDataset(Dataset):
 
         csv_src = os.path.join(config.data_root, 'documents')
 
-        tile_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_{}.csv'.format(self.cfg.task)))
+        tile_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_tile.csv'))
         if phase == 'train':
             self.target_df = tile_df[tile_df.phase != fold].reset_index(drop=True)
         else:
@@ -41,8 +43,8 @@ class TileDataset(Dataset):
 
         self.transforms = transforms
 
-        if not config.train and config.debug:
-            self.target_df = self.target_df[:int(0.2*len(self.target_df))]  # 如果debug状态, 测试模型有效性
+        if config.partial:
+            self.target_df = self.target_df[:int(0.2*len(self.target_df))]  # 如果part
 
     def __getitem__(self, item):
         img_path, label = self._get_info(self.target_df.loc[item, :])
@@ -69,6 +71,28 @@ class TileDataset(Dataset):
         return len(self.target_df)
 
 
+class TileTestDataset(Dataset):
+    def __init__(self, config, target_slide_id):
+        self.cfg = config
+        self.slide_tiles_root = os.path.join(self.cfg.data_root, 'data', target_slide_id)
+        slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
+                                                 'documents', 'slides_tiles_csv',
+                                                 target_slide_id+".csv"))
+        self.df = slide_tile_df[slide_tile_df == 'tissue'].reset_index(drop=True)
+
+    def __getitem__(self, item):
+        row = self.df.loc[item, :]
+        tile_path = os.path.join(self.slide_tiles_root, row.tile_id+'.png')
+        img = cv2.imread(tile_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = test_transforms(img)
+        return img
+
+    def __len__(self):
+        return len(self.df)
+
+
 class MILDataset(Dataset):
     def __init__(self, config, phase='train', transforms=None, fold=0):
         """先确定csv的结构"""
@@ -79,7 +103,23 @@ class MILDataset(Dataset):
         self.transforms = transforms
 
 
-param_dataloader = dict(pin_memory=True, num_workers=0)
+class MilTestDataset(Dataset):
+    def __init__(self, config, target_slide_id, transforms):
+        self.cfg = config
+        self.slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
+                                                      'documents', 'slides_tiles_csv',
+                                                      target_slide_id + ".csv"))
+
+        self.transforms = transforms
+
+    def __getitem__(self, item):
+        ...
+
+    def __len__(self):
+        return None
+
+
+param_dataloader = dict(pin_memory=False, num_workers=0)
 def dataloader(config, k=0):
     if config.task == 'tile':
         train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
@@ -93,6 +133,15 @@ def dataloader(config, k=0):
         valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
     return train_loader, valid_loader
 
+
+def test_loader(config, slide_id):
+    if config.task == 'tile':
+        test_set = TileTestDataset(config, slide_id)
+        loader = DataLoader(test_set, batch_size=config.batch_size, **param_dataloader)
+    else:
+        test_set = MilTestDataset(config, slide_id)
+        loader = DataLoader(test_set, batch_size=config.batch_size, **param_dataloader)
+    return loader
 
 
 

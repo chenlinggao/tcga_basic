@@ -312,6 +312,27 @@ def generate_tiles_folder(input_config):
     return target_folder, target_folder_data, documents_root, documents_csv_folder
 
 
+class StitchTiles:
+    """缝合tiles"""
+    def __init__(self, config):
+        # 根据不同的放大倍数进行缝合，直接缩放就好？
+        ...
+
+    def fit(self):
+        ...
+
+    def stitch(self):
+        ...
+
+    def output_heatmap(self):
+        # set output config: figure title, fig axis...
+        ...
+
+    def overlap(self):
+        ...
+
+
+
 def main():
     args_generator = Slide2TileConfig(config_name="Generate Tiles for Slide")
     args = args_generator.output_parser

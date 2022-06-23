@@ -106,11 +106,11 @@
 │       │       └── TCGA-F5-6811-01Z-00-DX1.csv
 │       ├── tiles_generator.logs
 │       └── vectors
-│       │       ├── TCGA-A6-3810-01Z-00-DX1.h5
-│       │       ├── TCGA-AA-3517-01Z-00-DX1.h5
-│       │       ├── ...
-│       │       ├── TCGA-EI-6882-01Z-00-DX1.h5
-│       │       └── TCGA-F5-6811-01Z-00-DX1.h5
+│               ├── TCGA-A6-3810-01Z-00-DX1.h5
+│               ├── TCGA-AA-3517-01Z-00-DX1.h5
+│               ├── ...
+│               ├── TCGA-EI-6882-01Z-00-DX1.h5
+│               └── TCGA-F5-6811-01Z-00-DX1.h5
 ```
 
 

@@ -26,7 +26,7 @@ class TileTrainer(BasicTrainer):
         train_loss, train_metric = self._train(train_loader, epoch)
         valid_loss, valid_metric = self._valid(valid_loader, epoch)
 
-        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs + 1,
+        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs,
                                                                                               train_loss, valid_loss,
                                                                                               self.cfg.metric,
                                                                                               train_metric, valid_metric)
@@ -69,7 +69,7 @@ class TileTrainer(BasicTrainer):
             losses.update(loss.item(), self.cfg.batch_size)
             metric.update(metric_, self.cfg.batch_size)
 
-            if idx % self.cfg.print_interval == 0:
+            if self.cfg.print_interval > 0 and idx % self.cfg.print_interval == 0:
                 self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
                                                                                                  loss.item(),
                                                                                                  self.cfg.metric, metric_))
@@ -101,14 +101,12 @@ class TileTrainer(BasicTrainer):
             metrics.update(metric_, self.cfg.batch_size)
 
             # if idx % self.cfg.print_interval == 0:
-            if idx % (len(valid_loader//4)) == 0:   # valid只打印四次
-                self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx,
-                                                                                                 len(valid_loader),
+            if idx % (len(valid_loader)//4) == 0:   # valid只打印四次
+                self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(valid_loader),
                                                                                                  loss.item(),
-                                                                                                 self.cfg.metric,
-                                                                                                 metric_))
-                self.tb.add_scalars('interval/valid_loss', {'valid': losses.avg}, self.print_counter)
-                self.print_counter += 1
+                                                                                                 self.cfg.metric, metric_))
+                self.tb.add_scalars('interval/loss', {'valid': losses.avg}, self.print_counter)
+                # self.print_counter += 1
 
         self.tb.add_scalars("epoch/loss", {'valid': losses.avg}, epoch)
         self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'valid': metrics.avg}, epoch)

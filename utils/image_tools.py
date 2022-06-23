@@ -7,10 +7,16 @@ import os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+
+import timm
+import torch
+from torchvision.transforms import transforms as F
+
 """
     plot_image_hist(input_image): 输出图片、直方图
     hsv_otsu_image(input_image, overlap=False): 
 """
+
 
 def plot_image_hist(input_image):
     """画图片的灰度直方图"""
@@ -34,6 +40,7 @@ def plot_image_hist(input_image):
     plt.tight_layout()
     plt.show()
 
+
 # ----------------------------------------------------- 待整理 -----------------------------------------------------
 # 几行几列
 def plot_multi_subplot_one_row(images, names=None, save_dst=None,
@@ -46,13 +53,13 @@ def plot_multi_subplot_one_row(images, names=None, save_dst=None,
     plt.title(label=fig_title)
 
     for idx, (image, name) in enumerate(zip(images, names)):
-        ax = plt.subplot(1, num_col, idx+1)
+        ax = plt.subplot(1, num_col, idx + 1)
         ax.imshow(image)
         ax.set_title(name)
         ax.axis('off')
 
     if save_dst is not None:
-        plt.savefig(os.path.join(save_dst, fig_title+'.png'))
+        plt.savefig(os.path.join(save_dst, fig_title + '.png'))
 
     plt.show()
 
@@ -109,21 +116,28 @@ class PreprocessMask:
         return closed_img
 
 
+# ----------------------------------------------------- 提取特征 -----------------------------------------------------
+basic_transforms = F.Compose([F.ToPILImage(), F.ToTensor(),
+                              F.Normalize(mean=[0.485, 0.456, 0.406],
+                                          std=[0.229, 0.224, 0.225])])
+class FeaturesGenerator:
+    def __init__(self, model_name, last_feature,
+                 use_cuda, batch_size, out_indices=None, **kwargs):
+        self.model =
 
+    def fit(self, img):
+        ...
 
+    def get_model(self, model_name, pretrained=True,
+                  last_feature=True, features_only=True, out_indices=None):
+        if last_feature and out_indices is None:
+            model = timm.create_model(model_name, pretrained, features_only=features_only)
+        elif out_indices is not None:
+            model = timm.create_model(model_name, pretrained, out_indices=out_indices)
+        else:
+            raise IOError
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def get_loader(self):
+        ...
 
 

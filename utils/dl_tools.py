@@ -49,7 +49,8 @@ class BasicTrainer:
 
     def fit(self, train_loader, valid_loader):
         # train
-        self.logger.info("------------------------------------ Start Training ------------------------------------")
+        self.logger.info("\n"
+                         "------------------------------------ Start Training ------------------------------------")
         for epoch in range(1, self.cfg.epochs + 1):
             early_stopper_flag = self.train_one_epoch(train_loader, valid_loader,
                                                       epoch, self.model_result_root,
