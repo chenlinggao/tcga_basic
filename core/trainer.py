@@ -69,7 +69,7 @@ class TileTrainer(BasicTrainer):
             losses.update(loss.item(), self.cfg.batch_size)
             metric.update(metric_, self.cfg.batch_size)
 
-            if self.cfg.print_interval > 0 and idx % self.cfg.print_interval == 0:
+            if self.cfg.print_interval > 0 and idx % (len(train_loader)//self.cfg.print_interval) == 0:
                 self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
                                                                                                  loss.item(),
                                                                                                  self.cfg.metric, metric_))

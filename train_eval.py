@@ -68,7 +68,8 @@ def main():
     preparation4csv(args, logger)   # 分成交叉验证啥的
 
     # 训练
-    message_output(input_string="{:-^100}".format(" Training "), input_logger=logger)
+    message_output(input_string="\n"
+                                "{:-^100}".format(" Training "), input_logger=logger)
     if args.use_cv:
         for k in range(args.cv):
             concept = " Fold_{} ".format(k)

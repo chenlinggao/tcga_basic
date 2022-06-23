@@ -6,6 +6,7 @@ learning_rate=3e-4
 #metric=f1
 backbone=resnet18
 partial=1
+print_interval=10
 
 #task=tile
 #target_label_name=tmb_label
@@ -19,7 +20,6 @@ partial=1
 #
 #train=1
 #use_cv=0
-#print_interval=0
 
 python train_eval.py -e $epochs -b $batch_size -lr $learning_rate --partial $partial
 
