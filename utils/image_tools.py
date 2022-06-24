@@ -44,14 +44,18 @@ def plot_image_hist(input_image):
 # ----------------------------------------------------- 待整理 -----------------------------------------------------
 # 整理成类
 
-def plot_multi_row_col(images, names=None, save_dst=None, figsize=(20, 8), fig_title=None):
+def plot_multi_row_col(images, row_names=None, col_names=None, fig_title=None,
+                       figsize=(20, 8), save_dst=None):
+    # row names还没实现，后续想到办法再加
     if not isinstance(images, np.ndarray):
         images = np.array(images)
 
     num_row = images.shape[0]
     num_col = images.shape[1]
-    if names is None:
-        names = [None] * num_col
+    if col_names is None:
+        col_names = [None] * num_col
+    if row_names is None:
+        row_names = [None] * num_row
 
     plt.figure(figsize=figsize)
     plt.title(label=fig_title)
@@ -60,12 +64,16 @@ def plot_multi_row_col(images, names=None, save_dst=None, figsize=(20, 8), fig_t
             if r == 0:
                 ax = plt.subplot(num_row, num_col, r*num_col+(c+1))
                 ax.imshow(images[r, c])
-                ax.set_title(names[c])
+                ax.set_title(col_names[c])
                 ax.axis('off')
             else:
                 ax = plt.subplot(num_row, num_col, r*num_col+(c+1))
                 ax.imshow(images[r, c])
                 ax.axis('off')
+
+            if c == 0:
+                plt.ylabel(row_names)
+
     if save_dst is not None:
         plt.savefig(os.path.join(save_dst, fig_title + '.png'))
     plt.tight_layout()
