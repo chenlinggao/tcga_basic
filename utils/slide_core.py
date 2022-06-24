@@ -3,26 +3,26 @@
 # @Time     : 下午8:56
 # @Author   : ChenLingHao
 # @File     : slide_core.py
-import sys
-
 import os
+import sys
+sys.path.append('..')
+
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 from glob import glob
 
-import openslide
 import cv2
+import numpy as np
+import openslide
+import staintools
 from PIL import Image
 import matplotlib.pyplot as plt
 
-from tools import message_output, FolderTool, construct_logger
-from config import Slide2TileConfig
+from .tools import message_output, FolderTool, construct_logger
+from .config import Slide2TileConfig
+from .image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
+
 import logging
-
-from image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
-
-sys.path.append('..')
 logging.getLogger('matplotlib.font_manager').disabled = True
 
 def isBackground(input_image, ratio_threshold=0.7, white_threshold=None, black_threshold=None):
@@ -332,6 +332,16 @@ class StitchTiles:
         ...
 
 
+class StainNorm:
+    def __init__(self, reference_img='./utils/stain_norm_ref.png', method="vahadane"):
+        self.normalizer = staintools.StainNormalizer(method)
+        ref_img = staintools.read_image(reference_img)
+        self.normalizer.fit(ref_img)
+
+    def fit(self, dst_img):
+        if not isinstance(dst_img, np.ndarray):
+            dst_img = cv2.cvtColor(cv2.imread(dst_img), cv2.COLOR_BGR2RGB)
+        return self.normalizer.transform(dst_img)
 
 def main():
     args_generator = Slide2TileConfig(config_name="Generate Tiles for Slide")
@@ -345,7 +355,7 @@ def main():
     tiles_generator_logger = construct_logger(folder_dst, log_name="tiles_generator", save_time=False)
     pd.DataFrame([], columns=['slide_id', 'slide_type', 'section_type',
                               'num_tiles', 'num_tiles_tissue', 'num_tiles_background',
-                              'tiles_dst']).to_csv(os.path.join(args.documents_root, "all_slides_info.csv"),
+                               'tiles_dst']).to_csv(os.path.join(args.documents_root, "all_slides_info.csv"),
                                                    index=False)
 
     # 打印args信息

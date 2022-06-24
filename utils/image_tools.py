@@ -35,16 +35,44 @@ def plot_image_hist(input_image):
     ax2.set_title("G channel")
     # R通道 直方图
     ax3 = plt.subplot(144)
-    ax3.hist(input_image[:, :, 2].ravel(), bins=50, color='r')
+    ax3.hist(input_image[:, :, 2].ravel(), bins=50, color='row')
     ax3.set_title("R channel")
     plt.tight_layout()
     plt.show()
 
 
 # ----------------------------------------------------- 待整理 -----------------------------------------------------
-# 几行几列
-def plot_multi_subplot_one_row(images, names=None, save_dst=None,
-                               figsize=(20, 8), fig_title=None):
+# 整理成类
+
+def plot_multi_row_col(images, names=None, save_dst=None, figsize=(20, 8), fig_title=None):
+    if not isinstance(images, np.ndarray):
+        images = np.array(images)
+
+    num_row = images.shape[0]
+    num_col = images.shape[1]
+    if names is None:
+        names = [None] * num_col
+
+    plt.figure(figsize=figsize)
+    plt.title(label=fig_title)
+    for r in range(num_row):
+        for c in range(num_col):
+            if r == 0:
+                ax = plt.subplot(num_row, num_col, r*num_col+(c+1))
+                ax.imshow(images[r, c])
+                ax.set_title(names[c])
+                ax.axis('off')
+            else:
+                ax = plt.subplot(num_row, num_col, r*num_col+(c+1))
+                ax.imshow(images[r, c])
+                ax.axis('off')
+    if save_dst is not None:
+        plt.savefig(os.path.join(save_dst, fig_title + '.png'))
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_multi_subplot_one_row(images, row=1, names=None, save_dst=None, figsize=(20, 8), fig_title=None):
     num_col = len(images)
     if names is None:
         names = [None] * num_col
@@ -53,7 +81,7 @@ def plot_multi_subplot_one_row(images, names=None, save_dst=None,
     plt.title(label=fig_title)
 
     for idx, (image, name) in enumerate(zip(images, names)):
-        ax = plt.subplot(1, num_col, idx + 1)
+        ax = plt.subplot(row, num_col, idx + 1)
         ax.imshow(image)
         ax.set_title(name)
         ax.axis('off')
@@ -123,7 +151,8 @@ basic_transforms = F.Compose([F.ToPILImage(), F.ToTensor(),
 class FeaturesGenerator:
     def __init__(self, model_name, last_feature,
                  use_cuda, batch_size, out_indices=None, **kwargs):
-        self.model =
+        # self.model =
+        ...
 
     def fit(self, img):
         ...

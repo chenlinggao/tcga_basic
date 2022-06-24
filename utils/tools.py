@@ -16,9 +16,15 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import StratifiedKFold, KFold, train_test_split
 
-def message_output(input_string, input_logger=None):
+
+def message_output(input_string, input_logger=None, level='info'):
     if input_logger:
-        input_logger.info(input_string)
+        if level == 'info':
+            input_logger.info(input_string)
+        elif level == 'warn':
+            input_logger.warning(input_string)
+        elif level == 'error':
+            input_logger.error(input_string)
     else:
         print(input_string)
 
@@ -56,7 +62,7 @@ def construct_logger(log_root, log_name=None, save_time=True):
 
 
 class FolderTool:
-    def __init__(self, input_path, renew=False):
+    def __init__(self, input_path, renew=False, logger=None):
         """
         创建文件夹
         :param input_path: 地址的目录，可以传入一个目录的列表，创建多个目录
@@ -64,6 +70,7 @@ class FolderTool:
         """
         self.folder_path = input_path
         self.renew = renew
+        self.logger = logger
 
     def doer(self):
         if isinstance(self.folder_path, str):
@@ -75,7 +82,8 @@ class FolderTool:
                 if not os.path.exists(p):
                     self.renew_folder(p)
         else:
-            print("[WARNING]: Path [{}] is exists".format(self.folder_path))
+            msg = ("[WARNING]: Path [{}] is exists".format(self.folder_path))
+            message_output(msg, self.logger, level='warn')
 
     def renew_folder(self, p):
         if os.path.exists(p) and self.renew:

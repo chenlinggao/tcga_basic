@@ -135,7 +135,7 @@ class EarlyStopper:
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
-    def __init__(self, name, fmt=':f'):
+    def __init__(self, name, fmt=':.6f'):
         self.name = name
         self.fmt = fmt
         self.reset()
@@ -275,10 +275,13 @@ class ResultReport:
         tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
         return tn/(tn+fp)
 
-    def calculate_results(self, class_list=None):
+    def calculate_results(self, class_list=None) -> dict:
         result_dict = {}
         if class_list is None:
             class_list = ['Accuracy', 'Recall', 'Precision', 'F1', 'Specificity', 'Sensitivity', 'AUC']
+        elif class_list == 'main':
+            class_list = ['Accuracy', 'Recall', 'F1', 'AUC']
+
         for target in class_list:
             _value = self.calculate_single_result(target)
             result_dict[target] = round(_value, 4)

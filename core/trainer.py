@@ -6,7 +6,7 @@
 import os
 import sys
 import torch
-
+import numpy as np
 from core.tile_models import get_classifier
 
 sys.path.append('..')
@@ -86,40 +86,42 @@ class TileTrainer(BasicTrainer):
 
     @torch.no_grad()
     def _valid(self, valid_loader, epoch):
-        losses = AverageMeter('Loss', ':.4e')
-        metrics = AverageMeter('{}'.format(self.cfg.metric), ':.5f')
-
+        losses, preds, probs = [], [], []
+        gts = []
         for idx, (images, labels) in enumerate(valid_loader):
             images = images.to(self.device)
             labels = labels.to(self.device)
 
             outputs = self.model(images)
             loss = self.loss_fn(outputs, labels)
+            preds_, probs_ = self.outputs2label(outputs, labels, get_probs=True)
 
-            metric_ = self.outputs2label(outputs, labels)
-            losses.update(loss.item(), self.cfg.batch_size)
-            metrics.update(metric_, self.cfg.batch_size)
+            losses.append(loss.item)
+            preds.append(preds_)
+            probs.append(probs_)
+            gts.append(labels.cpu().numpy())
+        losses = np.array(losses)
+        preds = np.concatenate(preds)
+        probs = np.concatenate(probs)
+        gts = np.concatenate(gts)
+        results = ResultReport(pred_label=preds, ground_truth=gts,
+                               pred_probabilities=probs).calculate_results()
 
-            # if idx % self.cfg.print_interval == 0:
-            if idx % (len(valid_loader)//4) == 0:   # valid只打印四次
-                self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(valid_loader),
-                                                                                                 loss.item(),
-                                                                                                 self.cfg.metric, metric_))
-                self.tb.add_scalars('interval/loss', {'valid': losses.avg}, self.print_counter)
-                # self.print_counter += 1
+        self.tb.add_scalars("epoch/loss", {'valid': np.mean(losses)}, epoch)
+        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'valid': results['AUC']}, epoch)
+        return np.mean(losses), results['AUC']
 
-        self.tb.add_scalars("epoch/loss", {'valid': losses.avg}, epoch)
-        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'valid': metrics.avg}, epoch)
-        return losses.avg, metrics.avg
-
-    def outputs2label(self, outputs, labels):
+    def outputs2label(self, outputs, labels, get_probs=False):
         pred_labels = torch.softmax(outputs, dim=1)
         pred_probs = pred_labels[:, -1].detach().cpu().numpy()
         pred_labels = (pred_labels.float() > 0.5)
         pred_labels = pred_labels[:, 1].cpu().numpy()
-        metric_ = ResultReport(pred_labels, labels,
-                               pred_probabilities=pred_probs).calculate_single_result(self.cfg.metric)
-        return metric_
+        if get_probs:
+            return pred_probs, pred_labels
+        else:
+            metric_ = ResultReport(pred_labels, labels,
+                                   pred_probabilities=pred_probs).calculate_single_result(self.cfg.metric)
+            return metric_
 
 
 class MILTrainer(BasicTrainer):

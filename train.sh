@@ -1,12 +1,14 @@
 #!/bin/bash
 
-epochs=30
+epochs=20
 batch_size=128
 learning_rate=3e-4
-#metric=f1
+metric=auc 
 backbone=resnet18
 partial=1
-print_interval=10
+print_interval=0
+
+optimizer=sgd
 
 #task=tile
 #target_label_name=tmb_label
@@ -21,5 +23,5 @@ print_interval=10
 #train=1
 #use_cv=0
 
-python train_eval.py -e $epochs -b $batch_size -lr $learning_rate --partial $partial
+python train_eval.py -e $epochs -b $batch_size -lr $learning_rate --partial $partial --optimizer $optimizer --metric $metric
 

@@ -39,7 +39,9 @@ def construct_version_folder(args):
     checkpoints = os.path.join(version_dst, 'checkpoints')
     logs_dst = os.path.join(version_dst, 'logs')
     tb = os.path.join(version_dst, 'tensorboard')
-    FolderTool([version_dst, checkpoints, logs_dst]).doer()
+
+    FolderTool(version_dst, renew=args.renew_folder).doer()
+    FolderTool([checkpoints, logs_dst]).doer()
     args.model_dst = version_dst
 
     if args.target_label_name.split('_')[-1] == 'score':

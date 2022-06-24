@@ -10,12 +10,14 @@ import pandas as pd
 import _pickle as pickle
 
 from cv2 import cv2
+import staintools
 import matplotlib.pyplot as plt
 
 import torch
 from torchvision.transforms import transforms as F
 from torch.utils.data import DataLoader, Dataset
 
+from utils.slide_core import StainNorm
 
 train_transforms = F.Compose([F.ToPILImage(),
                               F.RandomCrop(size=(500, 500))])
@@ -26,8 +28,11 @@ test_transforms = F.Compose([F.ToPILImage(),
                                          std=[0.229, 0.224, 0.225])
                             ])
 
+param_dataloader = dict(pin_memory=False, num_workers=0)
+
 
 class TileDataset(Dataset):
+    # finish
     def __init__(self, config, phase='train', transforms=None, fold=0):
         """先确定csv的结构"""
         self.cfg = config
@@ -44,7 +49,7 @@ class TileDataset(Dataset):
         self.transforms = transforms
 
         if config.partial:
-            self.target_df = self.target_df[:int(0.2*len(self.target_df))]  # 如果part
+            self.target_df = self.target_df[:int(0.01*len(self.target_df))]  # 如果part
 
     def __getitem__(self, item):
         img_path, label = self._get_info(self.target_df.loc[item, :])
@@ -52,6 +57,10 @@ class TileDataset(Dataset):
         img = cv2.imread(img_path)
         img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        normalizer = StainNorm()
+        img = normalizer.fit(img)
+
         img = self.transforms(img)
 
         if not isinstance(label, int):
@@ -73,6 +82,7 @@ class TileDataset(Dataset):
 
 class TileTestDataset(Dataset):
     def __init__(self, config, target_slide_id):
+        """读取目标slide的所有tile后，排除bg的tile，再对其余tile进行预测"""
         self.cfg = config
         self.slide_tiles_root = os.path.join(self.cfg.data_root, 'data', target_slide_id)
         slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
@@ -104,13 +114,14 @@ class MILDataset(Dataset):
 
 
 class MilTestDataset(Dataset):
-    def __init__(self, config, target_slide_id, transforms):
+    # under develop
+    def __init__(self, config, target_slide_id):
         self.cfg = config
         self.slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
                                                       'documents', 'slides_tiles_csv',
                                                       target_slide_id + ".csv"))
 
-        self.transforms = transforms
+        self.transforms = test_transforms
 
     def __getitem__(self, item):
         ...
@@ -119,14 +130,15 @@ class MilTestDataset(Dataset):
         return None
 
 
-param_dataloader = dict(pin_memory=False, num_workers=0)
 def dataloader(config, k=0):
     if config.task == 'tile':
+        # finish
         train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
         valid_set = TileDataset(config, 'valid', transforms=test_transforms, fold=k)
         train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
         valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
     else:
+        # under develop
         train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
         valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
         train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
@@ -136,9 +148,11 @@ def dataloader(config, k=0):
 
 def test_loader(config, slide_id):
     if config.task == 'tile':
+        # finish
         test_set = TileTestDataset(config, slide_id)
         loader = DataLoader(test_set, batch_size=config.batch_size, **param_dataloader)
     else:
+        # under develop
         test_set = MilTestDataset(config, slide_id)
         loader = DataLoader(test_set, batch_size=config.batch_size, **param_dataloader)
     return loader

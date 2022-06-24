@@ -122,6 +122,8 @@ class TrainConfig(_BasicConfig):
                                         help="if set true, use cross validation")
         self.others_parser.add_argument("--print_interval", default=10,
                                         type=int, help="setting for print batch information ")
+        self.others_parser.add_argument("--renew_folder", default=0, type=lambda x: bool(strtobool(x)),
+                                        help="[]: delete existed folder")
 
     def _fit_all_config(self):
         # self.add_path_config()
