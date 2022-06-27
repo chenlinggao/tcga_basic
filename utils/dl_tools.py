@@ -179,7 +179,7 @@ class ProgressMeter(object):
 
 
 class ModelComponent:
-    """[OUTPUT]: model, criterion, optimizer, warm_up_scheduler, scheduler, early_stopper"""
+    """[OUTPUT]: trained_model, criterion, optimizer, warm_up_scheduler, scheduler, early_stopper"""
 
     def __init__(self, input_config, logger=None):
         self.cfg = input_config

@@ -47,6 +47,7 @@ def plot_image_hist(input_image):
 def plot_multi_row_col(images, row_names=None, col_names=None, fig_title=None,
                        figsize=(20, 8), save_dst=None):
     # row names还没实现，后续想到办法再加
+    # 标题的大小
     if not isinstance(images, np.ndarray):
         images = np.array(images)
 
@@ -73,10 +74,11 @@ def plot_multi_row_col(images, row_names=None, col_names=None, fig_title=None,
 
             if c == 0:
                 plt.ylabel(row_names)
+    plt.suptitle()
+    plt.tight_layout()
 
     if save_dst is not None:
         plt.savefig(os.path.join(save_dst, fig_title + '.png'))
-    plt.tight_layout()
     plt.show()
 
 
@@ -159,7 +161,7 @@ basic_transforms = F.Compose([F.ToPILImage(), F.ToTensor(),
 class FeaturesGenerator:
     def __init__(self, model_name, last_feature,
                  use_cuda, batch_size, out_indices=None, **kwargs):
-        # self.model =
+        # self.trained_model =
         ...
 
     def fit(self, img):

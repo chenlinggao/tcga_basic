@@ -18,9 +18,9 @@ import staintools
 from PIL import Image
 import matplotlib.pyplot as plt
 
-from .tools import message_output, FolderTool, construct_logger
-from .config import Slide2TileConfig
-from .image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
+from tools import message_output, FolderTool, construct_logger
+from config import Slide2TileConfig
+from image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
 
 import logging
 logging.getLogger('matplotlib.font_manager').disabled = True
@@ -139,6 +139,8 @@ class SlideProcessor(SlideReader):
         self.tiles_count_all = 0
         self.tiles_count_tissue = 0
 
+        self.stain_normalizer = StainNorm()
+
     def otsu_tissue_mask(self, watch=False):
         thumbnail_dst = os.path.join(self.cfg.data_root, 'thumbnails', self.slide_name.split('.')[0])
         thumbnail = np.array(self.slide.get_thumbnail(self.slide.level_dimensions[-1]))[:, :, :3]
@@ -191,7 +193,7 @@ class SlideProcessor(SlideReader):
                 if isBackground_otsu(input_image=tile_array, ratio_threshold=self.cfg.ratio_threshold,
                                      black_threshold=self.cfg.black_threshold, otsu_threshold=otsu_threshold):
                     tile_type = 'background'
-                    cv2.imwrite("{}/{}.png".format(slide_dst+'/background', tile_id), tile_array)
+                    # cv2.imwrite("{}/{}.png".format(slide_dst+'/background', tile_id), tile_array)
                     self.record_tiles_info(tile_id=tile_id, coor=start_point, tile_type=tile_type)
                     continue
 
@@ -200,7 +202,8 @@ class SlideProcessor(SlideReader):
                 # quality assess ------------------------------------------------
 
                 # save tile
-                cv2.imwrite("{}/{}.png".format(slide_dst, tile_id), tile_array)
+                normed_tile = self.stain_normalizer.fit(tile_array)
+                cv2.imwrite("{}/{}.png".format(slide_dst, tile_id), normed_tile)
 
                 # 存储信息
                 self.record_tiles_info(tile_id=tile_id, coor=start_point, tile_type=tile_type)
@@ -342,6 +345,7 @@ class StainNorm:
         if not isinstance(dst_img, np.ndarray):
             dst_img = cv2.cvtColor(cv2.imread(dst_img), cv2.COLOR_BGR2RGB)
         return self.normalizer.transform(dst_img)
+
 
 def main():
     args_generator = Slide2TileConfig(config_name="Generate Tiles for Slide")

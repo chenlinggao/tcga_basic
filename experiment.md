@@ -121,5 +121,23 @@
 │               └── TCGA-F5-6811-01Z-00-DX1.h5
 ```
 
+#### 4. test result文件结构
+```
+test_result/
+├── model_name                         # 对应模型的名字
+│   ├── figure
+│   │   ├── slide_0_heatmap.png        # slide_0的热图
+│   │   └── slide_0_thumbnail.png      # slide_0的缩略图
+│   ├── test.log                       # 测试的日志
+│   ├── test_results.csv                # 存储所有slide相应的预测指标、预测label、真实label
+│   └── test_tiles_results
+│       └── slide_0.csv                # 存储slide_0的tile预测信息
+└── models_results.csv                 # 存储所有模型的测试指标
+```
 
->       
+
+
+
+
+
+

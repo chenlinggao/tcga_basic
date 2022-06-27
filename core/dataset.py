@@ -146,7 +146,7 @@ def dataloader(config, k=0):
     return train_loader, valid_loader
 
 
-def test_loader(config, slide_id):
+def output_test_loader(config, slide_id):
     if config.task == 'tile':
         # finish
         test_set = TileTestDataset(config, slide_id)

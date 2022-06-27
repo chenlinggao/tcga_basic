@@ -41,7 +41,7 @@ def construct_logger(log_root, log_name=None, save_time=True):
     if save_time:
         fh_fmt = logging.Formatter('[%(asctime)s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     if log_name is None:
-        log_name = 'model'
+        log_name = 'trained_model'
 
     logger = logging.getLogger()
     fh = logging.FileHandler(os.path.join(log_root, log_name + '.logs'), encoding='utf-8')

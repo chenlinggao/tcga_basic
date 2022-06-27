@@ -8,7 +8,7 @@ import os
 import argparse
 from distutils.util import strtobool
 
-from utils.tools import message_output
+from tools import message_output
 
 
 class _BasicConfig(object):
@@ -113,9 +113,9 @@ class TrainConfig(_BasicConfig):
 
     def add_others_config(self):
         self.others_parser.add_argument("--train", default=1, type=lambda x: bool(strtobool(x)),
-                                        help="if set true, will train the model")
+                                        help="if set true, will train the trained_model")
         self.others_parser.add_argument("--partial", default=1, type=lambda x: bool(strtobool(x)),
-                                        help="if set true, use 20% data to train the model")
+                                        help="if set true, use 20% data to train the trained_model")
         self.others_parser.add_argument("--cv", default=5, type=int,
                                         help="set number of fold for cross validation, usually[5, 10]")
         self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)),
