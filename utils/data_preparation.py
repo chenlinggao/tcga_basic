@@ -18,7 +18,8 @@ from glob import glob
 from tqdm import tqdm
 from random import shuffle
 
-from utils.tools import TrainValidTestSplit, TrainValidTestSplit_k_fold, message_output
+from core.tile_models import tiles2features
+from utils.tools import TrainValidTestSplit, TrainValidTestSplit_k_fold, message_output, FolderTool
 
 
 class PrepareTileSet:
@@ -42,7 +43,7 @@ class PrepareTileSet:
         splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
                                       stratify_name=self.cfg.target_label_name, names='tt')
         self.gene_df = splitor.fit()
-        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info.csv'), index=False)
+        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_{}.csv'.format(self.cfg.task)), index=False)
         self.gene_df = self.gene_df[self.gene_df.phase == 'train'].reset_index(drop=True)
 
     def preprocess_tile_csv(self, tile_df):
@@ -100,32 +101,35 @@ class PrepareTileSet:
 class PrepareMilSet(PrepareTileSet):
     def __init__(self, config):
         super().__init__(config)
-        # self.data_save_type = config.data_save_type
 
     def preprocess_slides_info_csv_k_fold(self):
+        # 把slide_info_csv分成几个部分
         self.preprocess_slides_info_csv()
         if self.cfg.cv >= 2:
             splitor = TrainValidTestSplit_k_fold(data_csv=self.gene_df, k_fold=self.cfg.cv,
                                                  stratify_name=self.cfg.target_label_name, colmun_name='phase')
         else:
             splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
-                                      stratify_name=self.cfg.target_label_name, names='tt')
+                                          stratify_name=self.cfg.target_label_name, names='tt')
         self.gene_df = splitor.fit()
-        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info.csv'), index=False)
-
-        output = self.gene_df[self.gene_df.phase != 'test'].reset_index(drop=True)
-        return output
+        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_{}.csv'.format(self.cfg.task)), index=False)
 
     def fit(self):
-        # 将slide分成交叉验证的三个部分
-        train_valid_df = self.preprocess_slides_info_csv_k_fold()
-
         # 将提取每个slide的tile的特征，并集成在一个pkl/h5中
-        for idx, slide_id in enumerate(self.gene_df.slide_id):
-            tile_folder = os.path.join(self.cfg.data_root, 'data', slide_id)
+        features_dst = os.path.join(self.cfg.data_root, 'features')
+        FolderTool(features_dst).doer()
+        for slide_id in self.gene_df.slide_id:
+            msg = " {} ".format(slide_id)
+            print("{:-^50}".format(msg))
+            tile_folder = self.gene_df[self.gene_df.slide_id == slide_id].tiles_dst.to_list()[0]
             tiles_dst = glob(tile_folder+'/*.png')
+            features = tiles2features(self.cfg, tiles_dst)
+            with open(os.path.join(features_dst, slide_id+'.pkl'), 'wb') as f:
+                pickle.dump(features, f)
 
-def fuse_slides_tmb_info(config, input_logger):
+
+
+def fuse_slides_tmb_info(config, input_logger=None):
     """把slide信息和tmb信息合并在一起"""
     documents_root = os.path.join(config.data_root, 'documents')
     slides_df = pd.read_csv(os.path.join(documents_root, 'all_slides_info.csv'))
@@ -138,7 +142,7 @@ def fuse_slides_tmb_info(config, input_logger):
         target_tmb_row = tmb_df[tmb_df.Patient_ID.isin([case_id])]
         if target_tmb_row.empty:
             o_msg = "[Warning] [{}] Not Exist, and pass it".format(slide_id)
-            input_logger.warning(o_msg)
+            message_output(o_msg, input_logger=input_logger, level='warn')
 
             # empty_index = target_df_index
             slides_df = slides_df.drop(target_df_index)
@@ -156,38 +160,42 @@ def fuse_slides_tmb_info(config, input_logger):
     slides_df.to_csv(os.path.join(documents_root, 'fused_slides_gene_info.csv'), index=False)
     return 0
 
+
 def setting_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", help="选择任务类型: ['tile', 'mil]")
     parser.add_argument("--documents_root", help="所有文件信息的根目录")
-    parser.add_argument("--cv", default=5)
+    parser.add_argument("--cv", default=5, type=int)
     parser.add_argument("--slide_max_tiles", type=int, help="每个slide最多拿出的tile的数量")
     parser.add_argument("--random_state", help="固定随机数", default=2022)
-    parser.add_argument("--target_label_name", help="")
+    parser.add_argument("--target_label_name", default="tmb_label", help="")
+    parser.add_argument("--batch_size", default=10, type=int)
+    parser.add_argument("--backbone", default='resnet50')
 
     return parser.parse_args()
 
 def preparation4csv(args, input_logger):
+    # 在训练的时候用
     message_output("\n{:-^50}".format(" Preparing CSVs "), input_logger)
     fuse_slides_tmb_info(args, input_logger)
-    # if pass_flag:
-        # message_output("[Warning]: Finished before", input_logger)
-    # else:
-    #     PrepareTileSet(args).fit()
-    PrepareTileSet(args).fit()
+    if args.task == 'tile':
+        PrepareTileSet(config=args).fit()
+    elif args.task == 'mil':
+        PrepareMilSet(config=args).fit()
+
 
 def main():
     args = setting_config()
-    args.task = 'tile'
+    args.task = 'mil'
     args.slide_max_tiles = 20
-    args.data_root = '/home/msi/chenlinghao/future/tcga_colon/data/tumor/1_512/tiles'
+    args.data_root = '/home/msi/disk3/tcga/data/tumor/tiles/1_1024'
     args.target_label_name = 'tmb_label'
     fuse_slides_tmb_info(args)
 
     if args.task == 'tile':
         PrepareTileSet(config=args).fit()
     elif args.task == 'mil':
-        ...
+        PrepareMilSet(config=args).fit()
 
 
 if __name__ == '__main__':
