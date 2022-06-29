@@ -31,7 +31,7 @@ class PrepareTileSet:
         self.cfg = config
         self.documents_root = os.path.join(config.data_root, 'documents')
         self.csv_root = os.path.join(self.documents_root, 'slides_tiles_csv')
-        self.gene_df = pd.read_csv(os.path.join(self.documents_root, 'fused_slides_gene_info.csv'))
+        self.gene_df = pd.read_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_{}.csv'.format(self.cfg.task)))
         self.gene_slide_ids = self.gene_df.slide_id.to_list()
         self.output_df = None
 
@@ -107,7 +107,8 @@ class PrepareMilSet(PrepareTileSet):
         self.preprocess_slides_info_csv()
         if self.cfg.cv >= 2:
             splitor = TrainValidTestSplit_k_fold(data_csv=self.gene_df, k_fold=self.cfg.cv,
-                                                 stratify_name=self.cfg.target_label_name, colmun_name='phase')
+                                                 stratify_name=self.cfg.target_label_name,
+                                                 column_name='phase')
         else:
             splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
                                           stratify_name=self.cfg.target_label_name, names='tt')
@@ -127,7 +128,6 @@ class PrepareMilSet(PrepareTileSet):
             features = tiles2features(self.cfg, tiles_dst)
             with open(os.path.join(features_dst, slide_id+'.pkl'), 'wb') as f:
                 pickle.dump(features, f)
-
 
 
 def fuse_slides_tmb_info(config, input_logger=None):
@@ -158,7 +158,7 @@ def fuse_slides_tmb_info(config, input_logger=None):
         slides_df.loc[target_df_index, 'tmb_label'] = tmb_label
         slides_df.loc[target_df_index, 'survival_overall'] = target_tmb_row.survival_overall.to_list()[0]
 
-    slides_df.to_csv(os.path.join(documents_root, 'fused_slides_gene_info.csv'), index=False)
+    slides_df.to_csv(os.path.join(documents_root, 'fused_slides_gene_info_{}.csv'.format(config.task)), index=False)
     return 0
 
 

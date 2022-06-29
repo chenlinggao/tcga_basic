@@ -35,7 +35,8 @@ def tiles2features(config, tile_dst):
             images = images.to(device)
             # feature = model.forward_features(images)
             feature = model.forward_features(images)
-            features.append(feature.detach().cpu().numpy())
+            feature = feature.view(feature.size(0), -1)
+            features.append(feature.detach().cpu().numpy())  # 要放到cpu ，以免爆显存
         features = np.concatenate(features, axis=0)
     return features
 

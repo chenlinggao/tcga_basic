@@ -174,7 +174,7 @@ class TrainValidTestSplit:
 
 class TrainValidTestSplit_k_fold:
     def __init__(self, data_csv, k_fold: int = 5, stratify_name=None,
-                 random_state: int = 2022, colmun_name='phase'):
+                 random_state: int = 2022, column_name='phase'):
         if isinstance(data_csv, str):
             self.df = pd.read_csv(data_csv)
         else:
@@ -182,7 +182,7 @@ class TrainValidTestSplit_k_fold:
         self.stratify_name = stratify_name
         self.k = k_fold
         self.rs = random_state
-        self.column_name = colmun_name
+        self.column_name = column_name
 
     def fit(self, save_dst=None, name=None):
         self._split()

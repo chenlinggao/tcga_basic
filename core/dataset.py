@@ -105,37 +105,54 @@ class TileTestDataset(Dataset):
 
 class MILDataset(Dataset):
     def __init__(self, config, phase='train', transforms=None, fold=0):
-        """先确定csv的结构"""
         self.cfg = config
         self.phase = phase
         tile_df = pd.read_csv(os.path.join(self.cfg.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)))
-        self.target_df = tile_df[tile_df.phase == phase].reset_index(drop=True)
-        self.transforms = transforms
+        phase_df = tile_df[tile_df.phase != 'test']
+
+        if phase == "train":
+            self.target_df = phase_df[phase_df.phase != fold]
+        else:
+            self.target_df = phase_df[phase_df.phase == fold]
+        self.slide_ids = self.target_df.slide_id
 
     def __getitem__(self, item):
         # 进入target slide的pkl
-        # 随机选取max_in_bag个features
-        ...
+        with open(os.path.join(self.cfg.data_root, 'features', self.slide_ids[item]+'pkl'), "rb") as f:
+            bag = pickle.load(f)  # np.ndarray
+        bag = torch.tensor(bag)
+
+        # get label
+        row = self.target_df[self.target_df.slide_id == self.slide_ids[item]]
+        label = row[self.cfg.target_label_name].to_list()[0]
+
+        return bag, label
 
     def __len__(self):
-        return len(self.target_df)
+        return len(self.slide_ids)
 
 
 class MilTestDataset(Dataset):
-    # under develop
-    def __init__(self, config, target_slide_id):
+    def __init__(self, config, phase='train', transforms=None, fold=0):
         self.cfg = config
-        self.slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
-                                                      'documents', 'slides_tiles_csv',
-                                                      target_slide_id + ".csv"))
-
-        self.transforms = test_transforms
+        self.phase = phase
+        tile_df = pd.read_csv(os.path.join(self.cfg.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)))
+        self.target_df = tile_df[tile_df.phase == 'test']
+        self.slide_ids = self.target_df.slide_id
 
     def __getitem__(self, item):
-        ...
+        # 进入target slide的pkl
+        with open(os.path.join(self.cfg.data_root, 'features', self.slide_ids[item] + 'pkl'), "rb") as f:
+            bag = pickle.load(f)  # np.ndarray
+        bag = torch.tensor(bag)
+        # get label
+        row = self.target_df[self.target_df.slide_id == self.slide_ids[item]]
+        label = row[self.cfg.target_label_name].to_list()[0]
+
+        return bag, label
 
     def __len__(self):
-        return None
+        return len(self.slide_ids)
 
 
 def dataloader(config, k=0):
@@ -149,7 +166,7 @@ def dataloader(config, k=0):
         # under develop
         train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
         valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
-        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
+        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, collate_fn=, **param_dataloader)
         valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
     return train_loader, valid_loader
 
