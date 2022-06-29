@@ -118,6 +118,7 @@ class PrepareMilSet(PrepareTileSet):
         # 将提取每个slide的tile的特征，并集成在一个pkl/h5中
         features_dst = os.path.join(self.cfg.data_root, 'features')
         FolderTool(features_dst).doer()
+
         for slide_id in self.gene_df.slide_id:
             msg = " {} ".format(slide_id)
             print("{:-^50}".format(msg))
@@ -170,7 +171,7 @@ def setting_config():
     parser.add_argument("--random_state", help="固定随机数", default=2022)
     parser.add_argument("--target_label_name", default="tmb_label", help="")
     parser.add_argument("--batch_size", default=128, type=int)
-    parser.add_argument("--resize_img", default=512, type=int)
+    parser.add_argument("--resize_img", default=224, type=int)
     parser.add_argument("--backbone", default='resnet50')
 
     return parser.parse_args()
@@ -191,8 +192,8 @@ def main():
     args.slide_max_tiles = 20
     args.data_root = '/home/msi/disk3/tcga/data/tumor/tiles/1_1024'
     args.target_label_name = 'tmb_label'
-    fuse_slides_tmb_info(args)
 
+    fuse_slides_tmb_info(args)
     if args.task == 'tile':
         PrepareTileSet(config=args).fit()
     elif args.task == 'mil':

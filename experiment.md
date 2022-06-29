@@ -1,5 +1,10 @@
 # 病理图预测TMB/MSI等基因指标
 
+## To-Do
+
+- [ ] 要不要打包成docker
+- [ ] 把预处理流程打包在一起
+
 ## 结果
 
 |方法|结果|{batch_size}\_{lr}\_{Epoch}|{ACC}|{Recall}|{F1}|{AUC}|
@@ -34,8 +39,8 @@
 
 ## 3. training
 
-- [ ] 基于tile的trainer
-- [ ] 基于tile的test
+- [x] 基于tile的trainer
+- [x] 基于tile的test
   
 - [ ] 基于mil的trainer
 - [ ] 基于mil的test
@@ -92,8 +97,8 @@ tumor
         │       └── ...
         ├── tiles_generator.logs
         └── vectors
-                ├── TCGA-A6-3810-01Z-00-DX1.h5
-                ├── TCGA-AA-3517-01Z-00-DX1.h5
+                ├── TCGA-A6-3810-01Z-00-DX1.pkl
+                ├── TCGA-AA-3517-01Z-00-DX1.pkl
                 └── ...
 ```
 

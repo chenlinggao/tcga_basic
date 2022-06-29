@@ -112,6 +112,14 @@ class MILDataset(Dataset):
         self.target_df = tile_df[tile_df.phase == phase].reset_index(drop=True)
         self.transforms = transforms
 
+    def __getitem__(self, item):
+        # 进入target slide的pkl
+        # 随机选取max_in_bag个features
+        ...
+
+    def __len__(self):
+        return len(self.target_df)
+
 
 class MilTestDataset(Dataset):
     # under develop

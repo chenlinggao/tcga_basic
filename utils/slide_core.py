@@ -158,19 +158,9 @@ class SlideProcessor(SlideReader):
         return otsu_threshold, otsu_mask, overlap_image
 
 
-    def fit(self, tile_size, magnification=None, mode='w'):
-        if mode == 'w':
-            """选择10000级别的病理图"""
-            for idx, (w, h) in enumerate(self.slide.level_dimensions):
-                if (w // 100000) or (h // 100000):
-                    continue
-                else:
-                    best_level = idx
-                    best_dimension = (w, h)
-                    break
-        else:
-            best_level = self.slide.get_best_level_for_downsample(magnification)
-            best_dimension = self.slide.level_dimensions[best_level]
+    def fit(self, tile_size, magnification=None):
+        best_level = self.slide.get_best_level_for_downsample(magnification)
+        best_dimension = self.slide.level_dimensions[best_level]
         # best_downsample = self.slide.level_downsamples[best_level]
         self.output_slide_info(level=best_level, logger=self.logger)
         message = "\t[Magnification]\t\t==>\t[{}x]\n" \
@@ -304,7 +294,7 @@ def fit_slides2tiles(input_config, input_logger=None, restart_totally=False):
         processor = SlideProcessor(slide_src=slides_path, config=input_config,
                                    all_slides_info_df=all_slides_info_df, logger=input_logger)
         all_slides_info_df = processor.fit(magnification=input_config.magnification,
-                                           tile_size=input_config.tile_size, mode='w')
+                                           tile_size=input_config.tile_size)
 
     all_slides_info_df.to_csv(os.path.join(input_config.documents_root, "all_slides_info.csv"))
 
@@ -316,6 +306,7 @@ def generate_tiles_folder(input_config):
                                                             input_config.tile_size))
     target_folder_data = os.path.join(target_folder, 'data')
     documents_root = os.path.join(target_folder, 'documents')
+    # documents_root = os.path.join(target_folder, 'features')
     documents_csv_folder = os.path.join(documents_root, 'slides_tiles_csv')
 
     FolderTool([thumbnail_root, tiles_root,
