@@ -163,10 +163,11 @@ def dataloader(config, k=0):
         train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
         valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
     else:
-        # under develop
         train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
         valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
-        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, collate_fn=, **param_dataloader)
+
+        # 如果需要在train时候随机选一定数量的特征，在collate_fn中进行筛选，这样也可以shuffle
+        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
         valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
     return train_loader, valid_loader
 

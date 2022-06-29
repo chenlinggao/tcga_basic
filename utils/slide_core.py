@@ -198,12 +198,12 @@ class SlideProcessor(SlideReader):
                     continue
 
                 # color norm ------------------------------------------------
+                # normed_tile = self.stain_normalizer.fit(tile_array)
 
                 # quality assess ------------------------------------------------
 
                 # save tile
-                normed_tile = self.stain_normalizer.fit(tile_array)
-                cv2.imwrite("{}/{}.png".format(slide_dst, tile_id), normed_tile)
+                cv2.imwrite("{}/{}.png".format(slide_dst, tile_id), tile_array)
 
                 # 存储信息
                 self.record_tiles_info(tile_id=tile_id, coor=start_point, tile_type=tile_type)
