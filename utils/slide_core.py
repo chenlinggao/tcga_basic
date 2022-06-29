@@ -5,7 +5,6 @@
 # @File     : slide_core.py
 import os
 import sys
-sys.path.append('..')
 
 from tqdm import tqdm
 import pandas as pd
@@ -23,6 +22,7 @@ from config import Slide2TileConfig
 from image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
 
 import logging
+sys.path.append('..')
 logging.getLogger('matplotlib.font_manager').disabled = True
 
 def isBackground(input_image, ratio_threshold=0.7, white_threshold=None, black_threshold=None):
@@ -139,7 +139,7 @@ class SlideProcessor(SlideReader):
         self.tiles_count_all = 0
         self.tiles_count_tissue = 0
 
-        self.stain_normalizer = StainNorm()
+        self.stain_normalizer = StainNorm(resize_shape=(self.cfg.tile_size, self.cfg.tile_size))
 
     def otsu_tissue_mask(self, watch=False):
         thumbnail_dst = os.path.join(self.cfg.data_root, 'thumbnails', self.slide_name.split('.')[0])
@@ -158,9 +158,19 @@ class SlideProcessor(SlideReader):
         return otsu_threshold, otsu_mask, overlap_image
 
 
-    def fit(self, magnification, tile_size):
-        best_level = self.slide.get_best_level_for_downsample(magnification)
-        best_dimension = self.slide.level_dimensions[best_level]
+    def fit(self, tile_size, magnification=None, mode='w'):
+        if mode == 'w':
+            """选择10000级别的病理图"""
+            for idx, (w, h) in enumerate(self.slide.level_dimensions):
+                if (w // 100000) or (h // 100000):
+                    continue
+                else:
+                    best_level = idx
+                    best_dimension = (w, h)
+                    break
+        else:
+            best_level = self.slide.get_best_level_for_downsample(magnification)
+            best_dimension = self.slide.level_dimensions[best_level]
         # best_downsample = self.slide.level_downsamples[best_level]
         self.output_slide_info(level=best_level, logger=self.logger)
         message = "\t[Magnification]\t\t==>\t[{}x]\n" \
@@ -273,9 +283,8 @@ def fit_slides2tiles(input_config, input_logger=None, restart_totally=False):
     slides_root = os.path.join(input_config.data_root, 'slides')
     slides_paths = glob(os.path.join(slides_root, '*.svs'))
     message_output("\n"
-                   "{} Generating Tiles[level[{}] - Tile_size{}] {}".format('-' * 50,
-                                                                            input_config.magnification, input_config.tile_size,
-                                                                            '-' * 50), input_logger=input_logger)
+                   "{} Generating Tiles[ Tile_size[{} ]] {}".format('-' * 50, input_config.tile_size,
+                                                                    '-' * 50), input_logger=input_logger)
     all_slides_info_df = pd.read_csv(os.path.join(input_config.documents_root, "all_slides_info.csv"), index_col='slide_id')
 
     if input_config.debug:
@@ -295,7 +304,7 @@ def fit_slides2tiles(input_config, input_logger=None, restart_totally=False):
         processor = SlideProcessor(slide_src=slides_path, config=input_config,
                                    all_slides_info_df=all_slides_info_df, logger=input_logger)
         all_slides_info_df = processor.fit(magnification=input_config.magnification,
-                                           tile_size=input_config.tile_size)
+                                           tile_size=input_config.tile_size, mode='w')
 
     all_slides_info_df.to_csv(os.path.join(input_config.documents_root, "all_slides_info.csv"))
 
@@ -336,9 +345,11 @@ class StitchTiles:
 
 
 class StainNorm:
-    def __init__(self, reference_img='./utils/stain_norm_ref.png', method="vahadane"):
+    def __init__(self, reference_img='./utils/stain_norm_ref.png', method="vahadane", resize_shape: tuple = (1024, 1024)):
+    # def __init__(self, reference_img='./stain_norm_ref.png', method="vahadane"):  # for debug
         self.normalizer = staintools.StainNormalizer(method)
         ref_img = staintools.read_image(reference_img)
+        ref_img = cv2.resize(ref_img, resize_shape)
         self.normalizer.fit(ref_img)
 
     def fit(self, dst_img):

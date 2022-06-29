@@ -133,7 +133,7 @@ def fuse_slides_tmb_info(config, input_logger=None):
     """把slide信息和tmb信息合并在一起"""
     documents_root = os.path.join(config.data_root, 'documents')
     slides_df = pd.read_csv(os.path.join(documents_root, 'all_slides_info.csv'))
-    tmb_df = pd.read_csv(os.path.join(documents_root, 'gene_info.csv'))
+    tmb_df = pd.read_csv(os.path.join(config.data_root, 'gene_info.csv'))
 
     for slide_id in slides_df.slide_id:
         case_id = slide_id[:12]
@@ -169,7 +169,8 @@ def setting_config():
     parser.add_argument("--slide_max_tiles", type=int, help="每个slide最多拿出的tile的数量")
     parser.add_argument("--random_state", help="固定随机数", default=2022)
     parser.add_argument("--target_label_name", default="tmb_label", help="")
-    parser.add_argument("--batch_size", default=10, type=int)
+    parser.add_argument("--batch_size", default=128, type=int)
+    parser.add_argument("--resize_img", default=512, type=int)
     parser.add_argument("--backbone", default='resnet50')
 
     return parser.parse_args()
