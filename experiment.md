@@ -35,15 +35,15 @@
 ### 2.2. 建立dataset
  **对于test的dataset应另外设置**
 - [x] 基于tile建立dataset
-- [ ] 基于mil建立dataset
+- [x] 基于mil建立dataset
 
 ## 3. training
 
 - [x] 基于tile的trainer
 - [x] 基于tile的test
   
-- [ ] 基于mil的trainer
-- [ ] 基于mil的test
+- [x] 基于mil的trainer
+- [x] 基于mil的test
 
 #### 4. 可视化
 - [ ] 训练集合tile的分布情况
@@ -51,59 +51,72 @@
 
 ### 文件结构
 
-#### 1. 训练代码结构
-
 ```
-    
+.
+├── bin
+│   ├── core
+│   │   ├── dataset.py
+│   │   ├── generate_heatmap.py
+│   │   ├── mil_models.py
+│   │   ├── tester.py
+│   │   ├── tile_models.py
+│   │   └── trainer.py
+│   ├── test.py
+│   ├── train_eval.py
+│   └── utils
+│       ├── config.py
+│       ├── data_preparation.py
+│       ├── dl_tools.py
+│       ├── image_tools.py
+│       ├── slide_core.py
+│       ├── stain_norm_ref.png
+│       └── tools.py
+├── data
+│   ├── gene_info.csv
+│   ├── slides      									# 数字病理图
+│   │   ├── slide_0.svs
+│   │   └── slide_1.svs
+│   ├── thumbnails  									# 缩略图
+│   │   ├── slide_0_otsu_image.png
+│   │   ├── slide_0_otsu_mask.png
+│   │   ├── slide_0_overall.png
+│   └── tiles       									# 图像块
+│       └── 1_512			   							# {放大倍数}_{图像块大小}
+│           ├── data
+│           │   ├── slide_0
+│           │   └── tile_1.png
+│           ├── documents
+│           │   ├── all_slides_info.csv					# 所有slide关于tile的信息
+│           │   ├── fused_slides_gene_info_mil.csv		# 融合slide和gene信息，用MIL方法，便于后续实验
+│           │   ├── fused_slides_gene_info_tile.csv		# 融合slide和gene信息，用tile方法，便于后续实验
+│           │   ├── slides_tiles_csv					# 存储所有tile的信息
+│           │   │   └── slide_0.csv
+│           │   └── train_dataset_tile.csv				# 
+│           ├── features								# tile的特征向量，用于后续实验
+│           │   └── slide_0.pkl
+│           └── tiles_generator.logs					# 生成数据的日志文件
+├── results										# 存放结果的文件夹
+│   └── trained_models							# 存放训练好的模型
+│       └── model_0
+│           ├── checkpoints						# 存放训练好的模型权重
+│           │   ├── checkpoints_0.pth 
+│           │   └── checkpoints_1.pth
+│           ├── tb								# 训练过程tensorboard
+│           ├── test_result						# 测试结果文件夹
+│           │   ├── figures						# 热力图（不一定实现）
+│           │   │   ├── slide_0_heatmap.png
+│           │   │   └── slide_1_heatmap.png
+│           │   └── test_tiles_results			# 关于每一个slide的测试结果
+│           │       ├── slide_0.csv
+│           │       ├── slide_1.csv
+│           │       └── slide_2.csv
+│           └── train_model.logs				# 训练过程的日志
+│
+├── data_preparation.sh							# 预处理数据的shell
+├── slide2tile.sh								# 预处理数据的shell
+├── test.sh										# 测试的shell
+└── train.sh									# 训练的shell
 ```
-
-#### 2. 结果文件结构
-
-```
-./results/
-├── documents
-│   └── all_models.csv
-└── trained_models
-    └── model_1
-        ├── checkpoints
-        ├── tb
-        └── train_mode.logs
-```
-
-#### 3. 数据文件结构
-
-```
-tumor
-├── slides
-│   ├── TCGA-A6-3810-01Z-00-DX1.2940ca70-013a-4bc3-ad6a-cf4d9ffa77ce.svs
-│   ├── TCGA-AA-3517-01Z-00-DX1.dac0f9a3-fa10-42e7-acaf-e86fff0829d2.svs
-│   └── ...
-├── thumbnails
-│   ├── TCGA-A6-3810-01Z-00-DX1.png
-│   └── ...
-└── tiles
-    └── 20_224
-        ├── data 
-        │   ├── TCGA-A6-3810-01Z-00-DX1 
-        │   │   ├── TCGA-A6-3810-01Z-00-DX1_2_[1120_1120].png
-        │   │   ├── TCGA-A6-3810-01Z-00-DX1_2_[1120_224].png
-        │   │   └── ...
-        │   └── ...
-        ├── documents
-        │   ├── all_slides_info.csv
-        │   └── slides_tiles_csv
-        │       ├── TCGA-A6-3810-01Z-00-DX1.csv
-        │       ├── TCGA-AA-3517-01Z-00-DX1.csv
-        │       └── ...
-        ├── tiles_generator.logs
-        └── vectors
-                ├── TCGA-A6-3810-01Z-00-DX1.pkl
-                ├── TCGA-AA-3517-01Z-00-DX1.pkl
-                └── ...
-```
-
-
-
 
 
 

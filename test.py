@@ -38,7 +38,7 @@ def construct_test_folder(config):
 
     project_root = os.path.abspath("..")
     data_root = os.path.join(project_root, "data/tumor", "tiles",
-                             "{}_{}".format(config.magnification, config.tile_size))    # 后期要改中间的tumor部分
+                             "{}_{}".format(config.magnification, config.tile_size))    # ----------- 后期要改中间的tumor部分
     result_root = os.path.join(project_root, "results")
     trained_model_root = os.path.join(result_root, "trained_models", config.trained_model_name)
 

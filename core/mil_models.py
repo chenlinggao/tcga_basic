@@ -17,8 +17,9 @@ channels_dict = dict(resnet18=[(224, 25088), (256, 32768), (512, 131072), (1024,
 
 
 class MILArchitecture(torch.nn.Module):
-    def __int__(self, config, **kwargs):
+    def __int__(self, config):
         self.cfg = config
+
         self.n = config.num_classes
         self.mil_input_channels = self.set_input_channels()
         self.mil_arch = self.get_mil_arch()
@@ -28,9 +29,9 @@ class MILArchitecture(torch.nn.Module):
         embedding_features, attention_weight = self.mil_arch(features)  # KxL
         output = self.classifier(embedding_features)
         if return_attention:
-            return output, features
+            return output, attention_weight
         else:
-            return output
+            return output, None
 
     def get_mil_arch(self):
         if self.cfg.mil_arch == 'attention_mil':

@@ -86,8 +86,8 @@ class PrepareTileSet:
         df = splitor.fit()
         df['phase'] = df.phase.apply(lambda x: int(x))
         df.to_csv(os.path.join(self.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)), index=False)
-        with open(os.path.join(self.documents_root, 'train_dataset_{}.pkl'.format(self.cfg.task)), 'wb') as f:
-            pickle.dump(df, f)
+        # with open(os.path.join(self.documents_root, 'train_dataset_{}.pkl'.format(self.cfg.task)), 'wb') as f:
+        #     pickle.dump(df, f)
 
     def sample_(self, input_df):
         df = input_df[input_df.tile_type == 'tissue'].reset_index(drop=True)
