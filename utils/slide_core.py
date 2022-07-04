@@ -337,7 +337,7 @@ class StitchTiles:
 
 class StainNorm:
     def __init__(self, reference_img='./utils/stain_norm_ref.png', method="vahadane", resize_shape: tuple = (1024, 1024)):
-    # def __init__(self, reference_img='./stain_norm_ref.png', method="vahadane"):  # for debug
+    # def __init__(self, reference_img='./stain_norm_ref.png', method="vahadane", resize_shape: tuple = (1024, 1024)):  # for debug
         self.normalizer = staintools.StainNormalizer(method)
         ref_img = staintools.read_image(reference_img)
         ref_img = cv2.resize(ref_img, resize_shape)

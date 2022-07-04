@@ -2,7 +2,7 @@
 
 ## To-Do
 
-- [ ] 要不要打包成docker
+- [ ] 要不要打包成docker(考虑环境和别的问题)
 - [ ] 把预处理流程打包在一起
 
 ## 结果
@@ -25,29 +25,24 @@
 
 ## 2. data preparing
 
-### 2.1. csv合并
+1. csv合并
 
-- [x] 合并tile的信息
-- [x] 合并slides和tmb的信息
-- [x] 分train-test
+    - [x] 合并tile的信息
+    - [x] 合并slides和tmb的信息
+    - [x] 分train-test
+    
+2. 建立dataset
+   
+    - [x] 基于tile建立dataset
+    - [x] 基于mil建立dataset
 
+3. training
+    - [x] 基于tile的trainer
+    - [x] 基于tile的test
+      
+    - [x] 基于mil的trainer
+    - [x] 基于mil的test
 
-### 2.2. 建立dataset
- **对于test的dataset应另外设置**
-- [x] 基于tile建立dataset
-- [x] 基于mil建立dataset
-
-## 3. training
-
-- [x] 基于tile的trainer
-- [x] 基于tile的test
-  
-- [x] 基于mil的trainer
-- [x] 基于mil的test
-
-#### 4. 可视化
-- [ ] 训练集合tile的分布情况
-- [ ] 
 
 ### 文件结构
 

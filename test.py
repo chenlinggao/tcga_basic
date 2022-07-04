@@ -79,7 +79,7 @@ class TestFullFlow:
             label = row[self.cfg.target_label_name]
             labels.append(label)
 
-            tile_probs, slide_prob, slide_label = self.test_one_slider(model, slide_id)
+            tile_probs, slide_prob, slide_label = self.test_one_slide(model, slide_id)
             probs.append(slide_prob)
             preds.append(slide_label)
 
@@ -108,7 +108,7 @@ class TestFullFlow:
             total_result_df.loc[length_df, k] = v
         total_result_df.to_csv(total_result_csv, index=False)
 
-    def test_one_slider(self, trained_model, target_id):
+    def test_one_slide(self, trained_model, target_id):
         test_loader = output_test_loader(config=self.cfg, slide_id=target_id)
         predictor = Tester(config=self.cfg)
         tile_probs = predictor.fit(trained_model, test_loader)
