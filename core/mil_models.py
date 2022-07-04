@@ -23,7 +23,7 @@ class MILArchitecture(torch.nn.Module):
         self.n = config.num_classes
         self.mil_input_channels = self.set_input_channels()
         self.mil_arch = self.get_mil_arch()
-        self.classifier = torch.nn.Linear(in_features=self.mil_input_channels, out_features=config.num_classes)
+        self.classifier = torch.nn.Linear(in_features=self.mil_input_channels, out_features=config.num_classes)  #
 
     def forward(self, features, return_attention=False):
         embedding_features, attention_weight = self.mil_arch(features)  # KxL

@@ -272,6 +272,7 @@ class SlideProcessor(SlideReader):
 def fit_slides2tiles(input_config, input_logger=None, restart_totally=False):
     slides_root = os.path.join(input_config.data_root, 'slides')
     slides_paths = glob(os.path.join(slides_root, '*.svs'))
+    slides_paths += glob(os.path.join(slides_root, '*.tif'))    # 如果有tif文件
     message_output("\n"
                    "{} Generating Tiles[ Tile_size[{} ]] {}".format('-' * 50, input_config.tile_size,
                                                                     '-' * 50), input_logger=input_logger)

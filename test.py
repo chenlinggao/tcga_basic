@@ -14,6 +14,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 from core.dataset import output_test_loader
+from core.mil_models import MILArchitecture
 from core.tester import Tester
 from core.tile_models import get_classifier
 from utils.dl_tools import ResultReport
@@ -54,7 +55,6 @@ def construct_test_folder(config):
     return config
 
 
-"""对应csv生成还没完成"""
 class TestFullFlow:
     def __init__(self, config, logger=None):
         self.cfg = config
@@ -75,7 +75,8 @@ class TestFullFlow:
         model = self.output_model()
         for idx, row in self.test_df.iterrows():
             slide_id = row['slide_id']
-            message_output("[{}/{}]: Processing {} ".format(idx, len(self.test_df), slide_id), input_logger=self.logger)
+            message_output("[{}/{}]: Processing {} ".format(idx, len(self.test_df), slide_id),
+                           input_logger=self.logger)
             label = row[self.cfg.target_label_name]
             labels.append(label)
 
@@ -83,7 +84,8 @@ class TestFullFlow:
             probs.append(slide_prob)
             preds.append(slide_label)
 
-            self.save_slide_result(slide_id, tiles_probabilities=tile_probs, slide_gt_label=label)  # 保存tile的预测信息
+            if self.cfg.task == 'tile':
+                self.save_slide_result(slide_id, tiles_probabilities=tile_probs, slide_gt_label=label)  # 保存tile的预测信息
 
             # 保存slide的预测信息
             self.model_slides_result.loc[idx, 'slide_id'] = slide_id
@@ -111,12 +113,17 @@ class TestFullFlow:
     def test_one_slide(self, trained_model, target_id):
         test_loader = output_test_loader(config=self.cfg, slide_id=target_id)
         predictor = Tester(config=self.cfg)
-        tile_probs = predictor.fit(trained_model, test_loader)
 
         if self.cfg.task == 'tile':
-            slide_prob, slide_label = self.tiles_probs_to_label(tile_probs)
-            return tile_probs, slide_prob, slide_label
+            probs = predictor.fit(trained_model, test_loader)
+            slide_prob, slide_label = self.tiles_probs_to_label(probs)
+            return probs, slide_prob, slide_label
 
+        elif self.cfg.task == "mil":
+            attention_weight, probs = predictor.fit(trained_model, test_loader)
+            slide_prob = probs
+            slide_label = np.int32(probs)
+            return attention_weight, slide_prob, slide_label
         else:
             raise NotImplementedError
 
@@ -144,9 +151,9 @@ class TestFullFlow:
             if self.cfg.task == 'tile':
                 model = get_classifier(self.cfg)
                 model.load_state_dict(trained_info['model_dict'])
-
-            # elif self.cfg.task == 'mil':
-            #     ...
+            elif self.cfg.task == 'mil':
+                model = MILArchitecture(config=self.cfg)
+                model.load_state_dict(trained_info['model_dict'])
             else:
                 raise NotImplementedError
         else:
@@ -160,7 +167,7 @@ def main(config):
         1. prepare (folder, ckpt_src, test_result_dst)
         2. predict
         3. output metrics of prediction
-        4. output heatmap
+        4. output heatmap (not yet)
     """
     test_logger = construct_logger(config.test_result_root, log_name="test")
     message_output("{:-^}\n".format(" Start Testing "))
@@ -172,5 +179,3 @@ if __name__ == '__main__':
     args = test_config()
     args = construct_test_folder(args)
     main(args)
-
-

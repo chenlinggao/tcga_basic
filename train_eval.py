@@ -67,7 +67,7 @@ def main():
     args, logger, tensorboard = construct_version_folder(args)
     args_printer(args, logger)  # 打印信息
 
-    preparation4csv(args, logger)   # 分成交叉验证啥的 -------------------------------------- 这里逻辑有问题 ------------------------
+    # preparation4csv(args, logger)   # 分成交叉验证啥的 -------------------------------------- 这里逻辑有问题 ------------------------
 
     # 训练
     message_output(input_string="\n"

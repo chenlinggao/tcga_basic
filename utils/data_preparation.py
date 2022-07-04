@@ -10,6 +10,8 @@
     test_dataset
 """
 import os
+from distutils.util import strtobool
+
 import h5py
 import argparse
 import pandas as pd
@@ -29,7 +31,7 @@ class PrepareTileSet:
     """
     def __init__(self, config):
         self.cfg = config
-        self.documents_root = os.path.join(config.data_root, 'documents')
+        self.documents_root = os.path.join(config.data_root, "tiles/{}_{}".format(config.magnification, config.tile_size), 'documents')
         self.csv_root = os.path.join(self.documents_root, 'slides_tiles_csv')
         self.gene_df = pd.read_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_{}.csv'.format(self.cfg.task)))
         self.gene_slide_ids = self.gene_df.slide_id.to_list()
@@ -86,8 +88,6 @@ class PrepareTileSet:
         df = splitor.fit()
         df['phase'] = df.phase.apply(lambda x: int(x))
         df.to_csv(os.path.join(self.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)), index=False)
-        # with open(os.path.join(self.documents_root, 'train_dataset_{}.pkl'.format(self.cfg.task)), 'wb') as f:
-        #     pickle.dump(df, f)
 
     def sample_(self, input_df):
         df = input_df[input_df.tile_type == 'tissue'].reset_index(drop=True)
@@ -117,14 +117,19 @@ class PrepareMilSet(PrepareTileSet):
 
     def fit(self):
         # 将提取每个slide的tile的特征，并集成在一个pkl/h5中
-        features_dst = os.path.join(self.cfg.data_root, 'features')
+        features_dst = os.path.join(self.cfg.data_root, "tiles/{}_{}".format(self.cfg.magnification, self.cfg.tile_size), 'features')
         FolderTool(features_dst).doer()
 
         for slide_id in self.gene_df.slide_id:
             msg = " {} ".format(slide_id)
             print("{:-^50}".format(msg))
             tile_folder = self.gene_df[self.gene_df.slide_id == slide_id].tiles_dst.to_list()[0]
-            tiles_dst = glob(tile_folder+'/*.png')
+            if not self.cfg.stain_norm:
+                tiles_dst = glob(tile_folder+'/*.png')
+            else:
+                # -------- "not finished"
+                tile_folder = tile_folder.replace('')
+                tiles_dst = glob(tile_folder+'/*.png')
             features = tiles2features(self.cfg, tiles_dst)
             with open(os.path.join(features_dst, slide_id+'.pkl'), 'wb') as f:
                 pickle.dump(features, f)
@@ -132,7 +137,7 @@ class PrepareMilSet(PrepareTileSet):
 
 def fuse_slides_tmb_info(config, input_logger=None):
     """把slide信息和tmb信息合并在一起"""
-    documents_root = os.path.join(config.data_root, 'documents')
+    documents_root = os.path.join(config.data_root, "tiles/{}_{}".format(config.magnification, config.tile_size), 'documents')
     slides_df = pd.read_csv(os.path.join(documents_root, 'all_slides_info.csv'))
     tmb_df = pd.read_csv(os.path.join(config.data_root, 'gene_info.csv'))
 
@@ -164,35 +169,35 @@ def fuse_slides_tmb_info(config, input_logger=None):
 
 def setting_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", help="选择任务类型: ['tile', 'mil]")
-    parser.add_argument("--documents_root", help="所有文件信息的根目录")
+    parser.add_argument("--task", help="选择任务类型: ['tile', 'mil]",default='mil')
+    parser.add_argument("--data_root", help="所有文件信息的根目录",default="/home/msi/disk3/tcga/data/tumor")
+    parser.add_argument("-m", "--magnification", default=1, type=int, help="病理图的放大倍数，用于计算合适的target_level")
+    parser.add_argument("--tile_size", default=512, type=int, help="tile的大小")
+    parser.add_argument("--stain_norm", default=0, type=lambda x: bool(strtobool(x)), help="")
+
     parser.add_argument("--cv", default=5, type=int)
     parser.add_argument("--slide_max_tiles", type=int, help="每个slide最多拿出的tile的数量")
     parser.add_argument("--random_state", help="固定随机数", default=2022)
     parser.add_argument("--target_label_name", default="tmb_label", help="")
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("--resize_img", default=224, type=int)
-    parser.add_argument("--backbone", default='resnet50')
+    parser.add_argument("--backbone", default='resnet18')
 
     return parser.parse_args()
 
-def preparation4csv(args, input_logger):
-    # 在训练的时候用
-    message_output("\n{:-^50}".format(" Preparing CSVs "), input_logger)
-    fuse_slides_tmb_info(args, input_logger)
-    if args.task == 'tile':
-        PrepareTileSet(config=args).fit()
-    elif args.task == 'mil':
-        PrepareMilSet(config=args).fit()
+# def preparation4csv(args, input_logger):
+#     # 在训练的时候用
+#     message_output("\n{:-^50}".format(" Preparing CSVs "), input_logger)
+#     fuse_slides_tmb_info(args, input_logger)
+#     if args.task == 'tile':
+#         PrepareTileSet(config=args).fit()
+#     elif args.task == 'mil':
+#         PrepareMilSet(config=args).fit()
 
 
 def main():
     args = setting_config()
-    args.task = 'mil'
-    args.slide_max_tiles = 20
-    args.data_root = '/home/msi/disk3/tcga/data/tumor/tiles/1_1024'
-    args.target_label_name = 'tmb_label'
-
+    print("\n{:-^50}".format(" Preparing CSVs For [{}]".format(args.task)))
     fuse_slides_tmb_info(args)
     if args.task == 'tile':
         PrepareTileSet(config=args).fit()

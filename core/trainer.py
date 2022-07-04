@@ -174,7 +174,7 @@ class MILTrainer(BasicTrainer):
         self.model.train()
         for idx, (features, label) in enumerate(loader):
             labels.append(label)
-            # 每个loader是一个slide
+            # 每个features是一个slide
             features = features.to(self.device)
             label = label.to(self.device)
             output, _ = self.model(features, return_attention=False)
