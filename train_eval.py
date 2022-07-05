@@ -10,7 +10,6 @@ from tensorboardX import SummaryWriter
 from core.dataset import dataloader
 from core.trainer import generate_trainer
 from utils.config import TrainConfig, args_printer, output_version_name
-from utils.data_preparation import preparation4csv
 from utils.tools import construct_logger, FolderTool, message_output
 
 def construct_folder(args):

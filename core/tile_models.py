@@ -12,6 +12,7 @@ from torchvision import models
 from torchvision.transforms import transforms as F
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+sys.path.append('..')
 
 test_transforms = F.Compose([F.ToPILImage(),
                              F.ToTensor(),

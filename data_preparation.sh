@@ -2,7 +2,7 @@
 
 # ===================== Configure ===================== #
 debug=0
-data_root=/home/msi/disk3/tcga/data/
+data_root=/home/msi/disk3/tcga/data/tumor/
 
 # --- tiling config
 magnification=1
@@ -19,7 +19,7 @@ python utils/slide_core.py -m $magnification --tile_size $tile_size --data_root 
 #python utils/stain_norm.py --data_root $data_root -m $magnification --tile_size $tile_size --resize_shape $resize_shape
 
 # step_2:  process csv documents
-python utils/data_preparation.py --task tile --data_root $data_root -m $magnification --tile_size $tile_size
-python utils/data_preparation.py --task mil --data_root $data_root -m $magnification --tile_size $tile_size
+python data_preparation.py --task tile --data_root $data_root -m $magnification --tile_size $tile_size
+python data_preparation.py --task mil --data_root $data_root -m $magnification --tile_size $tile_size
 
 

@@ -10,6 +10,7 @@
     test_dataset
 """
 import os
+import sys
 from distutils.util import strtobool
 
 import h5py
@@ -20,6 +21,7 @@ from glob import glob
 from tqdm import tqdm
 from random import shuffle
 
+# sys.path.append('core')
 from core.tile_models import tiles2features
 from utils.tools import TrainValidTestSplit, TrainValidTestSplit_k_fold, message_output, FolderTool
 
