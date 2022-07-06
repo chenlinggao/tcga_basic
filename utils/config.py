@@ -4,10 +4,8 @@
 # @Author   : ChenLingHao
 # @File     : random_state.py
 
-import os
 import argparse
 from distutils.util import strtobool
-
 from utils.tools import message_output
 
 
@@ -71,7 +69,7 @@ class TrainConfig(_BasicConfig):
         self.hyper_parser = self.parser.add_argument_group(title="[Hyper-parameter Setting]")
 
     def add_task_config(self):
-        self.task_parser.add_argument("--task", default='mil', help="[Options]: 'tile', 'mil'")
+        self.task_parser.add_argument("--task", default='tile', help="[Options]: 'tile', 'mil'")
         self.task_parser.add_argument("--mil_arch", default='attention_mil', help="[Options]: 'attention_mil'")
         self.task_parser.add_argument("--target_label_name", default="tmb_label",
                                       help="[Options]: 'tmb_label', 'tmb_score'")
@@ -105,10 +103,10 @@ class TrainConfig(_BasicConfig):
         self.component_parser.add_argument("--early_stop_delta", default=3e-4, type=float, help="[]: ")
 
     def add_others_config(self):
-        self.others_parser.add_argument("--train", default=1, type=lambda x: bool(strtobool(x)),
-                                        help="if set true, will train the trained_model")
-        self.others_parser.add_argument("--partial", default=1, type=lambda x: bool(strtobool(x)),
-                                        help="if set true, use 20% data to train the trained_model")
+        self.others_parser.add_argument("--train_all", default=1, type=lambda x: bool(strtobool(x)),
+                                        help="if set true, will train with all data")
+        self.others_parser.add_argument("--partial", default=0, type=lambda x: bool(strtobool(x)),
+                                        help="if set true, use few data to train the trained_model")
         self.others_parser.add_argument("--cv", default=5, type=int,
                                         help="set number of fold for cross validation, usually[5, 10]")
         self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)),
@@ -119,7 +117,6 @@ class TrainConfig(_BasicConfig):
                                         help="[]: delete existed folder")
 
     def _fit_all_config(self):
-        # self.add_path_config()
         self.add_task_config()
         self.add_hyper_config()
         self.add_component_config()
@@ -136,7 +133,7 @@ def args_printer(args, input_logger, filter_=None):
     for k, v in vars(args).items():
         output_string = "{: >20} ==> {}".format(k, v)
         if k in filter_:
-            output_string_ = '{}\n'.format('-'*50)
+            output_string_ = '{}\n'.format('-' * 50)
             message_output(output_string_, input_logger)
         message_output(input_string=output_string, input_logger=input_logger)
 
@@ -147,17 +144,7 @@ def output_version_name(args):
         p.task, p.backbone, p.target_label_name, p.batch_size, p.learning_rate
     )
     if p.task == 'mil':
-        name = "{}_{}_{}_{}_{}_{}".format(
-        p.task, p.mil_arch, p.backbone, p.target_label_name, p.batch_size, p.learning_rate
-    )
+        name = "{}_{}_{}_{}_{}".format(
+            p.task, p.mil_arch, p.backbone, p.target_label_name, p.learning_rate
+        )
     return name
-
-
-
-
-
-
-
-
-
-

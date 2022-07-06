@@ -3,17 +3,9 @@
 # @Time     : 下午4:44
 # @Author   : ChenLingHao
 # @File     : datasets.py
-"""
-    train-test
-    fuse_csv
-    train_dataset
-    test_dataset
-"""
 import os
-import sys
 from distutils.util import strtobool
 
-import h5py
 import argparse
 import pandas as pd
 import _pickle as pickle
@@ -137,12 +129,7 @@ class PrepareMilSet(PrepareTileSet):
             msg = " {} ".format(slide_id)
             print("{:-^50}".format(msg))
             tile_folder = self.gene_df[self.gene_df.slide_id == slide_id].tiles_dst.to_list()[0]
-            if not self.cfg.stain_norm:
-                tiles_dst = glob(tile_folder+'/*.png')
-            else:
-                # -------- "not finished"
-                tile_folder = tile_folder.replace('')
-                tiles_dst = glob(tile_folder+'/*.png')
+            tiles_dst = glob(tile_folder+'/*.png')
             features = tiles2features(self.cfg, tiles_dst)
             with open(os.path.join(features_dst, slide_id+'.pkl'), 'wb') as f:
                 pickle.dump(features, f)
@@ -197,15 +184,6 @@ def setting_config():
     parser.add_argument("--backbone", default='resnet18')
 
     return parser.parse_args()
-
-# def preparation4csv(args, input_logger):
-#     # 在训练的时候用
-#     message_output("\n{:-^50}".format(" Preparing CSVs "), input_logger)
-#     fuse_slides_tmb_info(args, input_logger)
-#     if args.task == 'tile':
-#         PrepareTileSet(config=args).fit()
-#     elif args.task == 'mil':
-#         PrepareMilSet(config=args).fit()
 
 
 def main():

@@ -33,9 +33,8 @@ def tiles2features(config, tile_dst):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     with torch.no_grad():
-        for images in tqdm(loader):
+        for images in tqdm(loader, desc="[Generating features]"):
             images = images.to(device)
-            # feature = model.forward_features(images)
             feature = model.forward_features(images)
             feature = feature.view(feature.size(0), -1)
             features.append(feature.detach().cpu().numpy())  # 要放到cpu ，以免爆显存

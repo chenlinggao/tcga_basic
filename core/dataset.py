@@ -28,7 +28,7 @@ test_transforms = F.Compose([F.ToPILImage(),
                                          std=[0.229, 0.224, 0.225])
                             ])
 
-param_dataloader = dict(pin_memory=False, num_workers=0)
+param_dataloader = dict(pin_memory=False, num_workers=2)
 
 
 class TileDataset(Dataset):
@@ -40,16 +40,21 @@ class TileDataset(Dataset):
 
         csv_src = os.path.join(config.data_root, 'documents')
 
-        tile_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_tile.csv'))
-        if phase == 'train':
-            self.target_df = tile_df[tile_df.phase != fold].reset_index(drop=True)
+        train_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_tile.csv'))
+
+        if config.train_all:
+            self.target_df = train_df
+            if self.cfg.partial:
+                self.target_df = self.target_df[:2]
         else:
-            self.target_df = tile_df[tile_df.phase == fold].reset_index(drop=True)
-
+            if phase == "train":
+                self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+                if self.cfg.partial:
+                    self.target_df = self.target_df[:2]
+            else:
+                self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
+                self.target_df = self.target_df[:2]
         self.transforms = transforms
-
-        if config.partial:
-            self.target_df = self.target_df[:int(0.01*len(self.target_df))]  # 如果part
 
     def __getitem__(self, item):
         img_path, label = self._get_info(self.target_df.loc[item, :])
@@ -104,17 +109,24 @@ class TileTestDataset(Dataset):
 
 
 class MILDataset(Dataset):
-    def __init__(self, config, phase='train', transforms=None, fold=0):
+    def __init__(self, config, phase='train', fold=0):
         self.cfg = config
         self.phase = phase
         train_df = pd.read_csv(os.path.join(self.cfg.data_root, 'documents', 'train_dataset_mil.csv'))
 
-        if phase == "train":
-            self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+        if config.train_all:
+            self.target_df = train_df
             if self.cfg.partial:
                 self.target_df = self.target_df[:10]
         else:
-            self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
+            if phase == "train":
+                self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+                if self.cfg.partial:
+                    self.target_df = self.target_df[:10]
+            else:
+                self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
+                self.target_df = self.target_df[:2]
+
         self.slide_ids = self.target_df.slide_id
 
     def __getitem__(self, item):
@@ -157,18 +169,27 @@ class MilTestDataset(Dataset):
 
 def dataloader(config, k=0):
     if config.task == 'tile':
-        # finish
-        train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
-        valid_set = TileDataset(config, 'valid', transforms=test_transforms, fold=k)
-        train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
-        valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
+        if config.train_all:
+            train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
+            train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
+            valid_loader = None
+        else:
+            train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
+            valid_set = TileDataset(config, 'valid', transforms=test_transforms, fold=k)
+            train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
+            valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
     else:
-        train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
-        valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
+        if config.train_all:
+            train_set = MILDataset(config, )
+            train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
+            valid_loader = None
+        else:
+            train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
+            valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
 
-        # 如果需要在train时候随机选一定数量的特征，在collate_fn中进行筛选，这样也可以shuffle
-        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
-        valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
+            # 如果需要在train时候随机选一定数量的特征，在collate_fn中进行筛选，这样也可以shuffle
+            train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
+            valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
     return train_loader, valid_loader
 
 

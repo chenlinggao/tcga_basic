@@ -6,7 +6,6 @@
 import os
 import random
 import _pickle as pickle
-from random import shuffle
 import numpy as np
 import torch
 from torch import nn, optim
@@ -52,11 +51,18 @@ class BasicTrainer:
         self.logger.info("\n"
                          "------------------------------------ Start Training ------------------------------------")
         for epoch in range(1, self.cfg.epochs + 1):
-            early_stopper_flag = self.train_one_epoch(train_loader, valid_loader,
-                                                      epoch, self.model_result_root,
-                                                      early_stopper=self.early_stopper)
-            if early_stopper_flag:
-                break
+            if self.cfg.train_all:
+                self.train_no_valid(train_loader, epoch, self.model_result_root)
+            else:
+                early_stopper_flag = self.train_one_epoch(train_loader, valid_loader,
+                                                          epoch, self.model_result_root,
+                                                          early_stopper=self.early_stopper)
+                if early_stopper_flag:
+                    break
+
+    def train_no_valid(self, train_loader, epoch, model_result_root):
+        # ---- train with all data and no valid step ----
+        return None
 
     def train_one_epoch(self, train_loader, valid_loader, epoch, model_result_root, early_stopper):
         return None
@@ -67,6 +73,7 @@ class BasicTrainer:
     def printer(self):
         # 输出到tensorboard之类的
         ...
+
 
 class EMA:
     ...
@@ -233,7 +240,6 @@ class ModelComponent:
             scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                        T_0=5, T_mult=10)
 
-
         return [warm_up_scheduler, scheduler]
 
     def component_info(self):
@@ -273,7 +279,7 @@ class ResultReport:
     @staticmethod
     def calculate_specificity(y_true, y_pred):
         tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-        return tn/(tn+fp)
+        return tn / (tn + fp)
 
     def calculate_results(self, class_list=None) -> dict:
         result_dict = {}

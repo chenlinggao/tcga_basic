@@ -23,8 +23,31 @@ class TileTrainer(BasicTrainer):
 
     def get_model(self):
         model = get_classifier(self.cfg)
-        # with open(os.path.join(self.cf))
         return model
+
+    def train_no_valid(self, train_loader, epoch, model_result_root):
+        train_loss, train_metric = self._train(train_loader, epoch)
+
+        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}] - {}[{:.6f}]".format(epoch, self.cfg.epochs,
+                                                                                train_loss,
+                                                                                self.cfg.metric,
+                                                                                train_metric)
+        self.logger.info(epoch_string)
+
+        if self.cfg.warm_up_epochs > 0 and epoch < self.cfg.warm_up_epochs:
+            scheduler = self.scheduler[0]
+        else:
+            scheduler = self.scheduler[1]
+        scheduler.step()
+
+        save_dict = dict(config=self.cfg,
+                         model_dict=self.model.state_dict(),
+                         stop_epoch=epoch,
+                         optimizer=self.optimizer.state_dict(),
+                         scheduler=scheduler.state_dict())
+
+        save_dst = os.path.join(model_result_root, 'checkpoints', "checkpoint_final.pth")
+        torch.save(save_dict, save_dst)
 
     def train_one_epoch(self, train_loader, valid_loader, epoch, model_result_root, early_stopper):
         train_loss, train_metric = self._train(train_loader, epoch)
@@ -73,7 +96,7 @@ class TileTrainer(BasicTrainer):
             losses.update(loss.item(), self.cfg.batch_size)
             metric.update(metric_, self.cfg.batch_size)
 
-            if self.cfg.print_interval > 0 and idx % (len(train_loader)//self.cfg.print_interval) == 0:
+            if self.cfg.print_interval > 0 and idx % (len(train_loader) // self.cfg.print_interval) == 0:
                 self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
                                                                                                  loss.item(),
                                                                                                  self.cfg.metric, metric_))
@@ -131,21 +154,44 @@ class TileTrainer(BasicTrainer):
 
 class MILTrainer(BasicTrainer):
     def __init__(self, config, logger, tensorboard, model_result_root, fold=None):
-        super(MILTrainer, self).__init__(config, logger, tensorboard, model_result_root, fold=None)
+        super(MILTrainer, self).__init__(config, logger, tensorboard, model_result_root, fold)
 
     def get_model(self):
         model = MILArchitecture(config=self.cfg)
-        # model = Tee(config=self.cfg)
         return model
+
+    def train_no_valid(self, train_loader, epoch, model_result_root):
+        train_loss, train_metric = self._train(train_loader, epoch)
+
+        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}] - {}[{:.6f}]".format(epoch, self.cfg.epochs,
+                                                                                train_loss,
+                                                                                self.cfg.metric,
+                                                                                train_metric)
+        self.logger.info(epoch_string)
+
+        if self.cfg.warm_up_epochs > 0 and epoch < self.cfg.warm_up_epochs:
+            scheduler = self.scheduler[0]
+        else:
+            scheduler = self.scheduler[1]
+        scheduler.step()
+
+        save_dict = dict(config=self.cfg,
+                         model_dict=self.model.state_dict(),
+                         stop_epoch=epoch,
+                         optimizer=self.optimizer.state_dict(),
+                         scheduler=scheduler.state_dict())
+
+        save_dst = os.path.join(model_result_root, 'checkpoints', "checkpoint_final.pth")
+        torch.save(save_dict, save_dst)
 
     def train_one_epoch(self, train_loader, valid_loader, epoch, model_result_root, early_stopper):
         train_loss, train_metric = self._train(train_loader, epoch)
         valid_loss, valid_metric = self._valid(valid_loader, epoch)
 
         epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]\n".format(epoch, self.cfg.epochs,
-                                                                                              train_loss, valid_loss,
-                                                                                              self.cfg.metric,
-                                                                                              train_metric, valid_metric)
+                                                                                                train_loss, valid_loss,
+                                                                                                self.cfg.metric,
+                                                                                                train_metric, valid_metric)
         self.logger.info(epoch_string)
 
         if self.cfg.warm_up_epochs > 0 and epoch < self.cfg.warm_up_epochs:
