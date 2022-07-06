@@ -7,9 +7,10 @@ import os
 import sys
 import torch
 import numpy as np
+from tqdm import tqdm
 
 from core.mil_models import MILArchitecture
-from core.tile_models import get_classifier
+from core.tile_models import get_classifier, Tee
 
 sys.path.append('..')
 
@@ -22,6 +23,7 @@ class TileTrainer(BasicTrainer):
 
     def get_model(self):
         model = get_classifier(self.cfg)
+        # with open(os.path.join(self.cf))
         return model
 
     def train_one_epoch(self, train_loader, valid_loader, epoch, model_result_root, early_stopper):
@@ -133,13 +135,14 @@ class MILTrainer(BasicTrainer):
 
     def get_model(self):
         model = MILArchitecture(config=self.cfg)
+        # model = Tee(config=self.cfg)
         return model
 
     def train_one_epoch(self, train_loader, valid_loader, epoch, model_result_root, early_stopper):
         train_loss, train_metric = self._train(train_loader, epoch)
         valid_loss, valid_metric = self._valid(valid_loader, epoch)
 
-        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs,
+        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]\n".format(epoch, self.cfg.epochs,
                                                                                               train_loss, valid_loss,
                                                                                               self.cfg.metric,
                                                                                               train_metric, valid_metric)
@@ -172,8 +175,8 @@ class MILTrainer(BasicTrainer):
         metrics = AverageMeter("MIL_Train_{}".format(self.cfg.metric))
         probs, labels = [], []
         self.model.train()
-        for idx, (features, label) in enumerate(loader):
-            labels.append(label)
+        for features, label in tqdm(loader, desc="[Epoch-{}_train]".format(epoch)):
+            labels.append(label.numpy())
             # 每个features是一个slide
             features = features.to(self.device)
             label = label.to(self.device)
@@ -191,13 +194,15 @@ class MILTrainer(BasicTrainer):
 
         probs = np.concatenate(probs, axis=0)
         preds = np.int32(probs > 0.5)
-        labels = np.array(labels)
-        metric = ResultReport(ground_truth=labels, pred_label=preds, pred_probabilities=probs).calculate_single_result(self.cfg.metric)
+        labels = np.concatenate(labels)
+        metric = ResultReport(ground_truth=labels,
+                              pred_label=preds,
+                              pred_probabilities=probs).calculate_single_result(self.cfg.metric)
         metrics.update(metric, 1)
         self.tb.add_scalars("epoch/loss", {'train': losses.avg}, epoch)
-        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'train': metric.avg}, epoch)
+        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'train': metrics.avg}, epoch)
 
-        return losses.avg, metric.avg
+        return losses.avg, metrics.avg
 
     def _valid(self, loader, epoch):
         losses = AverageMeter("MIL_Eval_Loss")
@@ -205,7 +210,7 @@ class MILTrainer(BasicTrainer):
         probs, labels = [], []
         self.model.eval()
         with torch.no_grad():
-            for idx, (features, label) in enumerate(loader):
+            for features, label in tqdm(loader, desc="[Epoch-{}_valid]".format(epoch)):
                 labels.append(label)
                 # 每个loader是一个slide
                 features = features.to(self.device)
@@ -220,13 +225,13 @@ class MILTrainer(BasicTrainer):
 
         probs = np.concatenate(probs, axis=0)
         preds = np.int32(probs > 0.5)
-        labels = np.array(labels)
+        labels = np.concatenate(labels)
         metric = ResultReport(ground_truth=labels, pred_label=preds, pred_probabilities=probs).calculate_single_result(self.cfg.metric)
         metrics.update(metric, 1)
         self.tb.add_scalars("epoch/loss", {'valid': losses.avg}, epoch)
-        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'valid': metric.avg}, epoch)
+        self.tb.add_scalars("epoch/{}".format(self.cfg.metric), {'valid': metrics.avg}, epoch)
 
-        return losses.avg, metric.avg
+        return losses.avg, metrics.avg
 
 
 def generate_trainer(config, logger, tensorboard, model_result_root, fold=None):

@@ -17,9 +17,9 @@ import staintools
 from PIL import Image
 import matplotlib.pyplot as plt
 
-from tools import message_output, FolderTool, construct_logger
-from config import Slide2TileConfig
-from image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
+from utils.tools import message_output, FolderTool, construct_logger
+from utils.config import Slide2TileConfig
+from utils.image_tools import hsv_otsu_image, plot_multi_subplot_one_row, binary_image
 
 import logging
 sys.path.append('..')

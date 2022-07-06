@@ -32,9 +32,9 @@ class BasicTrainer:
         self.k = fold
         self.print_counter = 0
 
-        set_seed(input_seed=config.random_state)
-
         self.model = self.get_model()
+        with open(os.path.join(self.cfg.model_dst, "checkpoints", "model.pkl"), "wb") as f:
+            pickle.dump(self.model, f)
 
         component_creator = ModelComponent(input_config=self.cfg, logger=logger)
         self.optimizer = component_creator.get_optimizer(self.model)
@@ -46,8 +46,8 @@ class BasicTrainer:
         self.model.to(self.device)
         self.loss_fn.to(self.device)
 
-
     def fit(self, train_loader, valid_loader):
+        set_seed(input_seed=self.cfg.random_state)
         # train
         self.logger.info("\n"
                          "------------------------------------ Start Training ------------------------------------")

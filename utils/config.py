@@ -8,7 +8,7 @@ import os
 import argparse
 from distutils.util import strtobool
 
-from tools import message_output
+from utils.tools import message_output
 
 
 class _BasicConfig(object):
@@ -54,10 +54,6 @@ class Slide2TileConfig(_BasicConfig):
 
     def add_others_config(self):
         self.others_parser.add_argument("--debug", default=0, type=lambda x: bool(strtobool(x)), help="测试是否有错")
-        # self.others_parser.add_argument("--folder_dst", help="当前tile_size和level的存储根路径")
-        # self.others_parser.add_argument("--folder_tiles_dst", help="当前tile_size和level的tiles存储路径")
-        # self.others_parser.add_argument("--documents_root", help="所有文件数据的根目录")
-        # self.others_parser.add_argument("--documents_csv_folder", help="每个slide的tile的信息目录")
         self.others_parser.add_argument("--restart_totally", default=1, type=lambda x: bool(strtobool(x)), help="每个slide的tile的信息目录")
 
     def _fit_all_config(self):
@@ -75,31 +71,28 @@ class TrainConfig(_BasicConfig):
         self.hyper_parser = self.parser.add_argument_group(title="[Hyper-parameter Setting]")
 
     def add_task_config(self):
-        self.task_parser.add_argument("--task", default='tile', help="[Options]: 'tile', 'mil'")
+        self.task_parser.add_argument("--task", default='mil', help="[Options]: 'tile', 'mil'")
+        self.task_parser.add_argument("--mil_arch", default='attention_mil', help="[Options]: 'attention_mil'")
         self.task_parser.add_argument("--target_label_name", default="tmb_label",
                                       help="[Options]: 'tmb_label', 'tmb_score'")
         self.task_parser.add_argument("--magnification", default=1, type=int,
                                       help="病理图的放大倍数，用于计算合适的target_level")
-        self.task_parser.add_argument("--tile_size", default=1024, type=int,
+        self.task_parser.add_argument("--tile_size", default=512, type=int,
                                       help="tile的大小")
-        self.task_parser.add_argument("--resize_img", default=512, type=int, help="[]: ")
-        self.task_parser.add_argument("--slide_max_tiles", default=2000, type=int, help="[]: 每个slide最多拿出的tile的数量")
+        self.task_parser.add_argument("--resize_img", default=224, type=int, help="[]: ")
+        self.task_parser.add_argument("--slide_max_tiles", default=10000, type=int, help="[]: 每个slide最多拿出的tile的数量")
 
     def add_path_config(self):
-        self.path_parser.add_argument("--data_root", default="/home/msi/disk3/tcga", help="所有图片数据的根目录")
-        self.path_parser.add_argument("--document_root", default="../documents", help="所有文件数据的根目录")
+        self.path_parser.add_argument("--data_root", default="/home/msi/disk3/tcga/data/tumor", help="所有图片数据的根目录")
 
     def add_hyper_config(self):
         self.hyper_parser.add_argument("-e", "--epochs", default=20, type=int, help="[]: 迭代次数")
-        self.hyper_parser.add_argument("-b", "--batch_size", default=128, type=int, help="[]: batch的大小")
+        self.hyper_parser.add_argument("-b", "--batch_size", default=100, type=int, help="[]: batch的大小")
         self.hyper_parser.add_argument("-lr", "--learning_rate", default=3e-4, type=float, help="[]: 学习率")
         self.hyper_parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]: ")
-        self.hyper_parser.add_argument("--metric", default="f1", help="[]: ")
-        # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
-        # self.hyper_parser.add_argument("--", default=, type=, help="[]: ")
+        self.hyper_parser.add_argument("--metric", default="auc", help="[]: ")
 
     def add_component_config(self):
-        # self.component_parser.add_argument("-mm", "--mil_method", default=, type=, help="[]: ")
         self.component_parser.add_argument("--backbone", default='resnet18', help="[]: ")
         self.component_parser.add_argument("--criterion", default='ce', help="[]: ")
         self.component_parser.add_argument("--optimizer", default='adam', help="[]: ")
@@ -134,37 +127,6 @@ class TrainConfig(_BasicConfig):
         return self.parser.parse_args()
 
 
-class TestConfig(_BasicConfig):
-    def __init__(self, config_name: str):
-        super().__init__(config_name)
-        self.task_parser = self.parser.add_argument_group(title="[Task Setting]")
-        self.component_parser = self.parser.add_argument_group(title="[Component Setting]")
-        self.hyper_parser = self.parser.add_argument_group(title="[Hyper-parameter Setting]")
-
-    def add_task_config(self):
-        ...
-
-    def add_path_config(self):
-        self.path_parser.add_argument("--data_root", default="/home/msi/disk3/tcga", help="所有图片数据的根目录")
-        self.path_parser.add_argument("--document_root", default="documents", help="所有文件数据的根目录")
-
-    def add_component_config(self):
-        ...
-
-    def add_hyper_config(self):
-        ...
-
-    def add_others_config(self):
-        ...
-
-    def _fit_all_config(self):
-        self.add_path_config()
-        self.add_task_config()
-        self.add_hyper_config()
-        self.add_component_config()
-        self.add_others_config()
-        return self.parser.parse_args()
-
 def args_printer(args, input_logger, filter_=None):
     """打印args信息"""
     if filter_ is None:
@@ -186,7 +148,7 @@ def output_version_name(args):
     )
     if p.task == 'mil':
         name = "{}_{}_{}_{}_{}_{}".format(
-        p.task, p.mil_method, p.backbone, p.target_label_name, p.batch_size, p.learning_rate
+        p.task, p.mil_arch, p.backbone, p.target_label_name, p.batch_size, p.learning_rate
     )
     return name
 

@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from cv2 import cv2
 import timm
+from torch import nn
 from torchvision import models
 from torchvision.transforms import transforms as F
 from torch.utils.data import Dataset, DataLoader
@@ -62,5 +63,12 @@ def output_loader(config, tiles_dst):
                         batch_size=config.batch_size, pin_memory=False, num_workers=0)
     return loader
 
+class Tee(nn.Module):
+    def __init__(self, config):
+        super(Tee, self).__init__()
+        ...
 
+    def forward(self):
+        ...
 
+from timm.models import resnet

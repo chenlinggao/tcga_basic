@@ -47,8 +47,14 @@ class PrepareTileSet:
         splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
                                       stratify_name=self.cfg.target_label_name, names='tt')
         self.gene_df = splitor.fit()
-        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_{}.csv'.format(self.cfg.task)), index=False)
+
+        df = self.gene_df
+        df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_all.csv'), index=False)
+        test_df = df[df.phase == 'test'].reset_index(drop=True)
+        test_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_test.csv'), index=False)
+
         self.gene_df = self.gene_df[self.gene_df.phase == 'train'].reset_index(drop=True)
+        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_train.csv'), index=False)
 
     def preprocess_tile_csv(self, tile_df):
         target_slide_id = tile_df.loc[0, 'slide_id'].split('.')[0]
@@ -107,17 +113,22 @@ class PrepareMilSet(PrepareTileSet):
     def preprocess_slides_info_csv_k_fold(self):
         # 把slide_info_csv分成几个部分
         self.preprocess_slides_info_csv()
+
+        # 此时self.gene_df就只有train的数据了
         if self.cfg.cv >= 2:
             splitor = TrainValidTestSplit_k_fold(data_csv=self.gene_df, k_fold=self.cfg.cv,
                                                  stratify_name=self.cfg.target_label_name,
                                                  column_name='phase')
         else:
             splitor = TrainValidTestSplit(data_csv=self.gene_df, ratio=[8, 2],
-                                          stratify_name=self.cfg.target_label_name, names='tt')
+                                          stratify_name=self.cfg.target_label_name, names='tv')
         self.gene_df = splitor.fit()
-        self.gene_df.to_csv(os.path.join(self.documents_root, 'fused_slides_gene_info_{}.csv'.format(self.cfg.task)), index=False)
+        self.gene_df.to_csv(os.path.join(self.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)), index=False)
 
     def fit(self):
+        # split csv
+        self.preprocess_slides_info_csv_k_fold()
+
         # 将提取每个slide的tile的特征，并集成在一个pkl/h5中
         features_dst = os.path.join(self.cfg.data_root, "tiles/{}_{}".format(self.cfg.magnification, self.cfg.tile_size), 'features')
         FolderTool(features_dst).doer()

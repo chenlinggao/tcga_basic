@@ -107,26 +107,28 @@ class MILDataset(Dataset):
     def __init__(self, config, phase='train', transforms=None, fold=0):
         self.cfg = config
         self.phase = phase
-        tile_df = pd.read_csv(os.path.join(self.cfg.documents_root, 'train_dataset_{}.csv'.format(self.cfg.task)))
-        phase_df = tile_df[tile_df.phase != 'test']
+        train_df = pd.read_csv(os.path.join(self.cfg.data_root, 'documents', 'train_dataset_mil.csv'))
 
         if phase == "train":
-            self.target_df = phase_df[phase_df.phase != fold]
+            self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+            if self.cfg.partial:
+                self.target_df = self.target_df[:10]
         else:
-            self.target_df = phase_df[phase_df.phase == fold]
+            self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
         self.slide_ids = self.target_df.slide_id
 
     def __getitem__(self, item):
         # 进入target slide的pkl
-        with open(os.path.join(self.cfg.data_root, 'features', self.slide_ids[item]+'pkl'), "rb") as f:
+        with open(os.path.join(self.cfg.data_root, 'features', self.slide_ids[item]+'.pkl'), "rb") as f:
             bag = pickle.load(f)  # np.ndarray
         bag = torch.tensor(bag)
 
+        # slide_max_tiles可能会添加
         # get label
         row = self.target_df[self.target_df.slide_id == self.slide_ids[item]]
         label = row[self.cfg.target_label_name].to_list()[0]
 
-        return bag, label
+        return bag, int(label)
 
     def __len__(self):
         return len(self.slide_ids)
@@ -135,7 +137,7 @@ class MILDataset(Dataset):
 class MilTestDataset(Dataset):
     def __init__(self, config, target_slide_id):
         self.cfg = config
-        df = pd.read_csv(os.path.join(self.cfg.documents_root, 'train_dataset_mil.csv'))
+        df = pd.read_csv(os.path.join(self.cfg.data_root, 'documents', 'train_dataset_mil.csv'))
         self.target_df = df[df.slide_id == target_slide_id]
 
     def __getitem__(self, item):
@@ -178,20 +180,3 @@ def output_test_loader(config, slide_id):
         test_set = MilTestDataset(config, slide_id)
         loader = DataLoader(test_set, batch_size=1, **param_dataloader)
     return loader
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -6,18 +6,44 @@
 import torch
 import torchvision
 import numpy as np
+from torch import nn
 
-"""
-Config:
-    
-"""
 channels_dict = dict(resnet18=[(224, 25088), (256, 32768), (512, 131072), (1024, 524288)],
                      resnet50=[(224, 100352), (256, 131072), (512, 524288), (1024, 2097152)],
                      )
 
+class AttentionMIL(nn.Module):
+    def __init__(self, L=1024, D=512, K=1, **kwargs):
+        super().__init__()
+        self.L = L
+        self.D = D
+        self.K = K
+        self.attention_V = torch.nn.Sequential(
+            torch.nn.Linear(self.L, self.D),
+            torch.nn.Tanh()
+        )
+        self.attention_U = torch.nn.Sequential(
+            torch.nn.Linear(self.L, self.D),
+            torch.nn.Sigmoid()
+        )
+        self.attention_weights = torch.nn.Linear(self.D, self.K)
 
-class MILArchitecture(torch.nn.Module):
-    def __int__(self, config):
+    def forward(self, features):
+        # Attention weights computation & features.shape == (B, L)
+        features = features.squeeze()
+        A_V = self.attention_V(features)         # Attention     (B, D)
+        A_U = self.attention_U(features)         # Gate          (B, D)
+        attention_w = self.attention_weights(A_V.mul(A_U))     # (B, K)
+
+        attention_w_ = attention_w.softmax(dim=0).transpose(1, 0)               # (K, B)
+        attention_features = torch.mm(attention_w_, features)   # (K, L)
+
+        return attention_features, attention_w
+
+
+class MILArchitecture(nn.Module):
+    def __init__(self, config, **kwargs):
+        super().__init__()
         self.cfg = config
 
         self.n = config.num_classes
@@ -40,7 +66,7 @@ class MILArchitecture(torch.nn.Module):
             raise NotImplementedError
         return mil_arch
 
-    def set_input_channels(self):
+    def set_input_channels(self) -> int:
         # 后续补充，先预设为224
         if self.cfg.backbone == 'resnet18':
             mil_input_channels = channels_dict['resnet18'][0][1]
@@ -48,32 +74,5 @@ class MILArchitecture(torch.nn.Module):
             raise NotImplementedError
         return mil_input_channels
 
-
-# paper:
-class AttentionMIL(torch.nn.Module):
-    def __int__(self, L=1024, D=512, K=1):
-        self.L = L
-        self.D = D
-        self.K = K
-        self.attention_V = torch.nn.Sequential(
-            torch.nn.Linear(self.L, self.D),
-            torch.nn.Tanh()
-        )
-        self.attention_U = torch.nn.Sequential(
-            torch.nn.Linear(self.L, self.D),
-            torch.nn.Sigmoid()
-        )
-        self.attention_weights = torch.nn.Linear(self.D, self.K)
-
-    def forward(self, features):
-        # Attention weights computation & features.shape == (B, L)
-        A_V = self.attention_V(features)         # Attention     (B, D)
-        A_U = self.attention_U(features)         # Gate          (B, D)
-        attention_w = self.attention_weights(A_V.mul(A_U))     # (B, K)
-
-        attention_w_ = attention_w.tranpose(1, 0)               # (K, B)
-        attention_features = torch.mm(attention_w_, features)   # (K, L)
-
-        return attention_features, attention_w
 
 
