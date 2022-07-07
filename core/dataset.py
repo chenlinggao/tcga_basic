@@ -4,20 +4,16 @@
 # @Author   : ChenLingHao
 # @File     : dataset.py
 import os
-from abc import ABC
-
 import pandas as pd
 import _pickle as pickle
 
 from cv2 import cv2
-import staintools
 import matplotlib.pyplot as plt
 
 import torch
 from torchvision.transforms import transforms as F
 from torch.utils.data import DataLoader, Dataset
 
-from utils.slide_core import StainNorm
 
 train_transforms = F.Compose([F.ToPILImage(),
                               F.RandomCrop(size=(500, 500))])
@@ -28,7 +24,7 @@ test_transforms = F.Compose([F.ToPILImage(),
                                          std=[0.229, 0.224, 0.225])
                             ])
 
-param_dataloader = dict(pin_memory=False, num_workers=2)
+param_dataloader = dict(pin_memory=False, num_workers=0)
 
 
 class TileDataset(Dataset):
@@ -63,9 +59,6 @@ class TileDataset(Dataset):
         img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        normalizer = StainNorm()
-        img = normalizer.fit(img)
-
         img = self.transforms(img)
 
         if not isinstance(label, int):
@@ -99,7 +92,7 @@ class TileTestDataset(Dataset):
         row = self.df.loc[item, :]
         tile_path = os.path.join(self.slide_tiles_root, row.tile_id+'.png')
         img = cv2.imread(tile_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = test_transforms(img)
         return img
@@ -158,9 +151,6 @@ class MilTestDataset(Dataset):
         with open(os.path.join(self.cfg.data_root, 'features', slide_name + 'pkl'), "rb") as f:
             bag = pickle.load(f)  # np.ndarray
         bag = torch.tensor(bag)
-        # get label
-        # label = self.target_df[self.cfg.target_label_name].to_list()[0]
-
         return bag
 
     def __len__(self):
@@ -184,8 +174,8 @@ def dataloader(config, k=0):
             train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
             valid_loader = None
         else:
-            train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
-            valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
+            train_set = MILDataset(config, 'train', fold=k)
+            valid_set = MILDataset(config, 'valid', fold=k)
 
             # 如果需要在train时候随机选一定数量的特征，在collate_fn中进行筛选，这样也可以shuffle
             train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)

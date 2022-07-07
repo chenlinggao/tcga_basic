@@ -85,7 +85,7 @@ class TrainConfig(_BasicConfig):
 
     def add_hyper_config(self):
         self.hyper_parser.add_argument("-e", "--epochs", default=20, type=int, help="[]: 迭代次数")
-        self.hyper_parser.add_argument("-b", "--batch_size", default=100, type=int, help="[]: batch的大小")
+        self.hyper_parser.add_argument("-b", "--batch_size", default=512, type=int, help="[]: batch的大小")
         self.hyper_parser.add_argument("-lr", "--learning_rate", default=3e-4, type=float, help="[]: 学习率")
         self.hyper_parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]: ")
         self.hyper_parser.add_argument("--metric", default="auc", help="[]: ")

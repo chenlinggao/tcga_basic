@@ -7,6 +7,7 @@ import os
 import sys
 import torch
 import numpy as np
+from time import time
 from tqdm import tqdm
 
 from core.mil_models import MILArchitecture
@@ -85,7 +86,12 @@ class TileTrainer(BasicTrainer):
         losses = AverageMeter('Loss', ':.4e')
         metric = AverageMeter('{}'.format(self.cfg.metric), ':.5f')
         self.model.train()
+
+        start = time()
+        self.logger.info("[Info] Loading Data......")
         for idx, (images, labels) in enumerate(train_loader):
+            if idx == 0:
+                self.logger.info("[Info] Loaded Data and cost [{:.4f}min]\n".format((time() - start) / 60))
             images = images.to(self.device)
             labels = labels.to(self.device)
 
@@ -97,9 +103,9 @@ class TileTrainer(BasicTrainer):
             metric.update(metric_, self.cfg.batch_size)
 
             if self.cfg.print_interval > 0 and idx % (len(train_loader) // self.cfg.print_interval) == 0:
-                self.logger.info("[In - {}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
-                                                                                                 loss.item(),
-                                                                                                 self.cfg.metric, metric_))
+                self.logger.info("[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
+                                                                                                  loss.item(),
+                                                                                                  self.cfg.metric, metric_))
                 self.tb.add_scalars('interval/train_loss', {'train': losses.avg}, self.print_counter)
                 self.print_counter += 1
 
@@ -221,6 +227,7 @@ class MILTrainer(BasicTrainer):
         metrics = AverageMeter("MIL_Train_{}".format(self.cfg.metric))
         probs, labels = [], []
         self.model.train()
+
         for features, label in tqdm(loader, desc="[Epoch-{}_train]".format(epoch)):
             labels.append(label.numpy())
             # 每个features是一个slide
