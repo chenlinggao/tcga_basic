@@ -20,9 +20,10 @@ train_all=1 # if true, train model with no validation.
 partial=0   # not train with all data.
 
 # -------- model config -------- #
-metric=auc
-optimizer=sgd
-backbone=resnet18   # if mil, means that is a classifier; if tile, means that is a features extractor.
-print_interval=100    # 一个epoch内打印的次数
+metric=auc                # <options>: [acc, recall, f1, auc]
+optimizer=sgd             # <options>: sgd, adam
+backbone=resnet18         # if mil, means that is a classifier; if tile, means that is a features extractor.
+mil_arch=attention_mil    # <options>: attention_mil,
+print_interval=100        # 一个epoch内打印的次数
 
 python train_eval.py --train_all $train_all --backbone $backbone --epochs $epochs -b $batch_size -lr $learning_rate --partial $partial --optimizer $optimizer --metric $metric --task $task --magnification $magnification --tile_size $tile_size --target_label_name $target_label_name --resize_img $resize_img --early_stop_patience $early_stop_patience --print_interval $print_interval

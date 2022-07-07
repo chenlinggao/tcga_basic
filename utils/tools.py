@@ -29,6 +29,22 @@ def message_output(input_string, input_logger=None, level='info'):
         print(input_string)
 
 
+def calculate_hms(start, end):
+    diff = end - start
+    hour = diff // 3600
+    minute = (diff % 3600) // 60
+    second = diff % 3600 % 60
+    if hour == 0:
+        if minute == 0:
+            string_hms = "{}s".format(second)
+        else:
+            string_hms = "{}m{}s".format(minute, second)
+    else:
+        string_hms = "{}h{}m{}s".format(hour, minute, second)
+
+    return string_hms
+
+
 def construct_logger(log_root, log_name=None, save_time=True):
     """
     将运行的日志进行保存
@@ -207,6 +223,4 @@ class TrainValidTestSplit_k_fold:
         for idx, (_, valid_indexes) in enumerate(kf.split(X=indexes, y=labels)):
             self.df.loc[valid_indexes, self.column_name] = k_labels[idx]
 
-
 # if __name__ == '__main__':
-

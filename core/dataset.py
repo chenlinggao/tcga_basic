@@ -14,7 +14,6 @@ import torch
 from torchvision.transforms import transforms as F
 from torch.utils.data import DataLoader, Dataset
 
-
 train_transforms = F.Compose([F.ToPILImage(),
                               F.RandomCrop(size=(500, 500))])
 
@@ -22,9 +21,11 @@ test_transforms = F.Compose([F.ToPILImage(),
                              F.ToTensor(),
                              F.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
-                            ])
+                             ])
 
 param_dataloader = dict(pin_memory=False, num_workers=0)
+
+partial_ratio = 0.8
 
 
 class TileDataset(Dataset):
@@ -40,17 +41,14 @@ class TileDataset(Dataset):
 
         if config.train_all:
             self.target_df = train_df
-            if self.cfg.partial:
-                self.target_df = self.target_df[:2]
         else:
             if phase == "train":
                 self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
-                if self.cfg.partial:
-                    self.target_df = self.target_df[:2]
             else:
                 self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
-                if self.cfg.partial:
-                    self.target_df = self.target_df[:2]
+
+        if self.cfg.partial:
+            self.target_df = self.target_df[:int(partial_ratio * len(self.target_df))]
         self.transforms = transforms
 
     def __getitem__(self, item):
@@ -72,7 +70,7 @@ class TileDataset(Dataset):
         slide_id = input_df.slide_id.split('.')[0]
         tile_label = input_df[self.cfg.target_label_name]
 
-        tile_src = os.path.join(self.cfg.data_root, 'data', slide_id, tile_id+'.png')
+        tile_src = os.path.join(self.cfg.data_root, 'data', slide_id, tile_id + '.png')
         return tile_src, tile_label
 
     def __len__(self):
@@ -86,12 +84,12 @@ class TileTestDataset(Dataset):
         self.slide_tiles_root = os.path.join(self.cfg.data_root, 'data', target_slide_id)
         slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
                                                  'documents', 'slides_tiles_csv',
-                                                 target_slide_id+".csv"))
+                                                 target_slide_id + ".csv"))
         self.df = slide_tile_df[slide_tile_df == 'tissue'].reset_index(drop=True)
 
     def __getitem__(self, item):
         row = self.df.loc[item, :]
-        tile_path = os.path.join(self.slide_tiles_root, row.tile_id+'.png')
+        tile_path = os.path.join(self.slide_tiles_root, row.tile_id + '.png')
         img = cv2.imread(tile_path)
         img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -110,22 +108,20 @@ class MILDataset(Dataset):
 
         if config.train_all:
             self.target_df = train_df
-            if self.cfg.partial:
-                self.target_df = self.target_df[:10]
         else:
             if phase == "train":
                 self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
-                if self.cfg.partial:
-                    self.target_df = self.target_df[:10]
             else:
                 self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
-                self.target_df = self.target_df[:2]
+
+        if self.cfg.partial:
+            self.target_df = self.target_df[:int(partial_ratio * len(self.target_df))]
 
         self.slide_ids = self.target_df.slide_id
 
     def __getitem__(self, item):
         # 进入target slide的pkl
-        with open(os.path.join(self.cfg.data_root, 'features', self.slide_ids[item]+'.pkl'), "rb") as f:
+        with open(os.path.join(self.cfg.data_root, 'features', self.slide_ids[item] + '.pkl'), "rb") as f:
             bag = pickle.load(f)  # np.ndarray
         bag = torch.tensor(bag)
 

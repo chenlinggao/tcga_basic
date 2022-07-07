@@ -5,13 +5,17 @@
 # @File     : dl_tools.py
 import os
 import random
-import _pickle as pickle
 import numpy as np
+from time import time
+import _pickle as pickle
+
 import torch
 from torch import nn, optim
 from torch.optim.lr_scheduler import WarmUpLR
 from sklearn.metrics import accuracy_score, recall_score, roc_auc_score, f1_score, precision_score, roc_curve, auc
 from sklearn.metrics import confusion_matrix
+
+from utils.tools import calculate_hms
 
 
 def set_seed(input_seed):
@@ -46,6 +50,7 @@ class BasicTrainer:
         self.loss_fn.to(self.device)
 
     def fit(self, train_loader, valid_loader):
+        start = time()
         set_seed(input_seed=self.cfg.random_state)
         # train
         self.logger.info("\n"
@@ -59,6 +64,7 @@ class BasicTrainer:
                                                           early_stopper=self.early_stopper)
                 if early_stopper_flag:
                     break
+        self.logger.info("[Info] Training Cost [{}]".format(calculate_hms(start, time())))
 
     def train_no_valid(self, train_loader, epoch, model_result_root):
         # ---- train with all data and no valid step ----

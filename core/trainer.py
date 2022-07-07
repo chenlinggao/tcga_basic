@@ -12,10 +12,10 @@ from tqdm import tqdm
 
 from core.mil_models import MILArchitecture
 from core.tile_models import get_classifier, Tee
+from tools import calculate_hms
+from utils.dl_tools import BasicTrainer, AverageMeter, ResultReport
 
 sys.path.append('..')
-
-from utils.dl_tools import BasicTrainer, AverageMeter, ResultReport
 
 
 class TileTrainer(BasicTrainer):
@@ -29,10 +29,10 @@ class TileTrainer(BasicTrainer):
     def train_no_valid(self, train_loader, epoch, model_result_root):
         train_loss, train_metric = self._train(train_loader, epoch)
 
-        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}] - {}[{:.6f}]".format(epoch, self.cfg.epochs,
-                                                                                train_loss,
-                                                                                self.cfg.metric,
-                                                                                train_metric)
+        epoch_string = "\n[Info] Epoch[{}/{}] - Loss[{:.6f}] - {}[{:.6f}]".format(epoch, self.cfg.epochs,
+                                                                                  train_loss,
+                                                                                  self.cfg.metric,
+                                                                                  train_metric)
         self.logger.info(epoch_string)
 
         if self.cfg.warm_up_epochs > 0 and epoch < self.cfg.warm_up_epochs:
@@ -54,10 +54,10 @@ class TileTrainer(BasicTrainer):
         train_loss, train_metric = self._train(train_loader, epoch)
         valid_loss, valid_metric = self._valid(valid_loader, epoch)
 
-        epoch_string = "[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs,
-                                                                                              train_loss, valid_loss,
-                                                                                              self.cfg.metric,
-                                                                                              train_metric, valid_metric)
+        epoch_string = "\n[Info] Epoch[{}/{}] - Loss[{:.6f}/{:.6f}] - {}[{:.6f}/{:.6f}]".format(epoch, self.cfg.epochs,
+                                                                                                train_loss, valid_loss,
+                                                                                                self.cfg.metric,
+                                                                                                train_metric, valid_metric)
         self.logger.info(epoch_string)
 
         if self.cfg.warm_up_epochs > 0 and epoch < self.cfg.warm_up_epochs:
@@ -83,11 +83,12 @@ class TileTrainer(BasicTrainer):
             return False
 
     def _train(self, train_loader, epoch):
+        start = time()
+        interval_start = None
         losses = AverageMeter('Loss', ':.4e')
         metric = AverageMeter('{}'.format(self.cfg.metric), ':.5f')
         self.model.train()
 
-        start = time()
         self.logger.info("[Info] Loading Data......")
         for idx, (images, labels) in enumerate(train_loader):
             if idx == 0:
@@ -103,9 +104,18 @@ class TileTrainer(BasicTrainer):
             metric.update(metric_, self.cfg.batch_size)
 
             if self.cfg.print_interval > 0 and idx % (len(train_loader) // self.cfg.print_interval) == 0:
-                self.logger.info("[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
-                                                                                                  loss.item(),
-                                                                                                  self.cfg.metric, metric_))
+                if idx == 0:
+                    interval_start = time()
+                    self.logger.info("[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
+                                                                                                      loss.item(),
+                                                                                                      self.cfg.metric, metric_))
+                else:
+                    interval_end = time()
+                    self.logger.info("[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}] - Cost[{}]".format(epoch, idx, len(train_loader),
+                                                                                                                 loss.item(),
+                                                                                                                 self.cfg.metric, metric_,
+                                                                                                                 calculate_hms(interval_start, interval_end)))
+                    interval_start = interval_end
                 self.tb.add_scalars('interval/train_loss', {'train': losses.avg}, self.print_counter)
                 self.print_counter += 1
 
