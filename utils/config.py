@@ -105,7 +105,7 @@ class TrainConfig(_BasicConfig):
     def add_others_config(self):
         self.others_parser.add_argument("--train_all", default=1, type=lambda x: bool(strtobool(x)),
                                         help="if set true, will train with all data")
-        self.others_parser.add_argument("--partial", default=0, type=lambda x: bool(strtobool(x)),
+        self.others_parser.add_argument("--partial", default=0.8, type=float,
                                         help="if set true, use few data to train the trained_model")
         self.others_parser.add_argument("--cv", default=5, type=int,
                                         help="set number of fold for cross validation, usually[5, 10]")

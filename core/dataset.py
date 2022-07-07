@@ -49,7 +49,8 @@ class TileDataset(Dataset):
                     self.target_df = self.target_df[:2]
             else:
                 self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
-                self.target_df = self.target_df[:2]
+                if self.cfg.partial:
+                    self.target_df = self.target_df[:2]
         self.transforms = transforms
 
     def __getitem__(self, item):

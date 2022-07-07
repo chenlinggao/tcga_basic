@@ -15,9 +15,9 @@ epochs=10
 early_stop_patience=5    # early_stop_patience < epochs
 batch_size=512
 learning_rate=3e-4
-train_all=1
-#use_cv=0   # if ture, will train with cv-fold, and output num_cv checkpoints
-partial=0   # if true, test few data for training
+train_all=1 # if true, train model with no validation.
+#use_cv=0   # if ture, will train with cv-fold, and output num_cv checkpoints.
+partial=0   # not train with all data.
 
 # -------- model config -------- #
 metric=auc
