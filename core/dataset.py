@@ -4,20 +4,16 @@
 # @Author   : ChenLingHao
 # @File     : dataset.py
 import os
-from abc import ABC
-
 import pandas as pd
 import _pickle as pickle
 
 from cv2 import cv2
-import staintools
 import matplotlib.pyplot as plt
 
 import torch
 from torchvision.transforms import transforms as F
 from torch.utils.data import DataLoader, Dataset
 
-from utils.slide_core import StainNorm
 
 train_transforms = F.Compose([F.ToPILImage(),
                               F.RandomCrop(size=(500, 500))])
@@ -40,16 +36,22 @@ class TileDataset(Dataset):
 
         csv_src = os.path.join(config.data_root, 'documents')
 
-        tile_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_tile.csv'))
-        if phase == 'train':
-            self.target_df = tile_df[tile_df.phase != fold].reset_index(drop=True)
+        train_df = pd.read_csv(os.path.join(csv_src, 'train_dataset_tile.csv'))
+
+        if config.train_all:
+            self.target_df = train_df
+            if self.cfg.partial:
+                self.target_df = self.target_df[:2]
         else:
-            self.target_df = tile_df[tile_df.phase == fold].reset_index(drop=True)
-
+            if phase == "train":
+                self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+                if self.cfg.partial:
+                    self.target_df = self.target_df[:2]
+            else:
+                self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
+                if self.cfg.partial:
+                    self.target_df = self.target_df[:2]
         self.transforms = transforms
-
-        if config.partial:
-            self.target_df = self.target_df[:int(0.01*len(self.target_df))]  # 如果part
 
     def __getitem__(self, item):
         img_path, label = self._get_info(self.target_df.loc[item, :])
@@ -57,9 +59,6 @@ class TileDataset(Dataset):
         img = cv2.imread(img_path)
         img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        normalizer = StainNorm()
-        img = normalizer.fit(img)
 
         img = self.transforms(img)
 
@@ -94,7 +93,7 @@ class TileTestDataset(Dataset):
         row = self.df.loc[item, :]
         tile_path = os.path.join(self.slide_tiles_root, row.tile_id+'.png')
         img = cv2.imread(tile_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (self.cfg.resize_img, self.cfg.resize_img))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = test_transforms(img)
         return img
@@ -104,17 +103,24 @@ class TileTestDataset(Dataset):
 
 
 class MILDataset(Dataset):
-    def __init__(self, config, phase='train', transforms=None, fold=0):
+    def __init__(self, config, phase='train', fold=0):
         self.cfg = config
         self.phase = phase
         train_df = pd.read_csv(os.path.join(self.cfg.data_root, 'documents', 'train_dataset_mil.csv'))
 
-        if phase == "train":
-            self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+        if config.train_all:
+            self.target_df = train_df
             if self.cfg.partial:
                 self.target_df = self.target_df[:10]
         else:
-            self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
+            if phase == "train":
+                self.target_df = train_df[train_df.phase != fold].reset_index(drop=True)
+                if self.cfg.partial:
+                    self.target_df = self.target_df[:10]
+            else:
+                self.target_df = train_df[train_df.phase == fold].reset_index(drop=True)
+                self.target_df = self.target_df[:2]
+
         self.slide_ids = self.target_df.slide_id
 
     def __getitem__(self, item):
@@ -146,9 +152,6 @@ class MilTestDataset(Dataset):
         with open(os.path.join(self.cfg.data_root, 'features', slide_name + 'pkl'), "rb") as f:
             bag = pickle.load(f)  # np.ndarray
         bag = torch.tensor(bag)
-        # get label
-        # label = self.target_df[self.cfg.target_label_name].to_list()[0]
-
         return bag
 
     def __len__(self):
@@ -157,18 +160,27 @@ class MilTestDataset(Dataset):
 
 def dataloader(config, k=0):
     if config.task == 'tile':
-        # finish
-        train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
-        valid_set = TileDataset(config, 'valid', transforms=test_transforms, fold=k)
-        train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
-        valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
+        if config.train_all:
+            train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
+            train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
+            valid_loader = None
+        else:
+            train_set = TileDataset(config, 'train', transforms=test_transforms, fold=k)
+            valid_set = TileDataset(config, 'valid', transforms=test_transforms, fold=k)
+            train_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, **param_dataloader)
+            valid_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
     else:
-        train_set = MILDataset(config, 'train', transforms=test_transforms, fold=k)
-        valid_set = MILDataset(config, 'valid', transforms=test_transforms, fold=k)
+        if config.train_all:
+            train_set = MILDataset(config, )
+            train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
+            valid_loader = None
+        else:
+            train_set = MILDataset(config, 'train', fold=k)
+            valid_set = MILDataset(config, 'valid', fold=k)
 
-        # 如果需要在train时候随机选一定数量的特征，在collate_fn中进行筛选，这样也可以shuffle
-        train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
-        valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
+            # 如果需要在train时候随机选一定数量的特征，在collate_fn中进行筛选，这样也可以shuffle
+            train_loader = DataLoader(train_set, batch_size=1, shuffle=False, **param_dataloader)
+            valid_loader = DataLoader(valid_set, batch_size=1, shuffle=False, **param_dataloader)
     return train_loader, valid_loader
 
 

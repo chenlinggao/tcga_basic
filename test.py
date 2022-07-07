@@ -23,12 +23,12 @@ from utils.tools import FolderTool, construct_logger, message_output
 
 def test_config():
     parser = argparse.ArgumentParser("Test Config")
+    parser.add_argument("--task", default="tile", help="[]")
     parser.add_argument("--magnification", default=1, type=int, help="[]")
-    parser.add_argument("--tile_size", default=1024, type=int, help="[]")
+    parser.add_argument("--tile_size", default=512, type=int, help="[]")
     parser.add_argument("--trained_model_name", default="tile_resnet18_tmb_label_128_0.0003", help="[]")
     parser.add_argument("--target_label_name", default="tmb_label", help="[]")
-    parser.add_argument("--task", default="tile", help="[]")
-    # parser.add_argument("--", default="", type=, help="[]")
+    parser.add_argument("--batch_size", default=128, type=int, help="[]")
     return parser.parse_args()
 
 def construct_test_folder(config):
@@ -59,7 +59,7 @@ class TestFullFlow:
     def __init__(self, config, logger=None):
         self.cfg = config
         df = pd.read_csv(os.path.join(config.data_root, 'documents',
-                                      'fused_slides_gene_info.csv'))
+                                      'fused_slides_gene_info_all.csv'))
         self.test_df = df[df.phase == 'test'].reset_index(drop=True)
 
         model_slides_result = os.path.join(config.trained_model_root, "test_results.csv")
@@ -75,11 +75,12 @@ class TestFullFlow:
         model = self.output_model()
         for idx, row in self.test_df.iterrows():
             slide_id = row['slide_id']
-            message_output("[{}/{}]: Processing {} ".format(idx, len(self.test_df), slide_id),
+            message_output("[{}/{}]: Processing {} ".format(idx+1, len(self.test_df), slide_id),
                            input_logger=self.logger)
             label = row[self.cfg.target_label_name]
             labels.append(label)
 
+            # if self.cfg.task == 'tile':
             tile_probs, slide_prob, slide_label = self.test_one_slide(model, slide_id)
             probs.append(slide_prob)
             preds.append(slide_label)
@@ -89,9 +90,10 @@ class TestFullFlow:
 
             # 保存slide的预测信息
             self.model_slides_result.loc[idx, 'slide_id'] = slide_id
-            self.model_slides_result.loc[idx, 'prob'] = slide_prob
-            self.model_slides_result.loc[idx, 'pred'] = slide_label
             self.model_slides_result.loc[idx, 'ground_truth'] = label
+            self.model_slides_result.loc[idx, 'pred'] = slide_label     # if classification, slide_label is a label; and regression is a score.
+            if self.cfg.task_type == 'classification':
+                self.model_slides_result.loc[idx, 'prob'] = slide_prob
 
         # 保存所有的模型信息
         result_dict = ResultReport(ground_truth=labels, pred_probabilities=probs, pred_label=preds).calculate_results()
@@ -170,7 +172,8 @@ def main(config):
         4. output heatmap (not yet)
     """
     test_logger = construct_logger(config.test_result_root, log_name="test")
-    message_output("{:-^}\n".format(" Start Testing "))
+    message_output(input_string="\n"
+                                "{:-^100}".format(" Testing "), input_logger=test_logger)
     tester = TestFullFlow(config, logger=test_logger)
     tester.fit()
 
