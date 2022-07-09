@@ -33,7 +33,7 @@ class Tester:
             probs = np.concatenate(probs, axis=0)
             return probs
         else:
-            ...
+            raise NotImplementedError
 
     def mil_predictor(self, trained_model, loader):
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -48,5 +48,4 @@ class Tester:
             probs = np.concatenate(probs, axis=0)
             return attention_weight, probs
         else:
-            ...
-
+            raise NotImplementedError

@@ -31,16 +31,16 @@ def message_output(input_string, input_logger=None, level='info'):
 
 def calculate_hms(start, end):
     diff = end - start
-    hour = diff // 3600
-    minute = (diff % 3600) // 60
-    second = diff % 3600 % 60
+    hour = int(diff // 3600)
+    minute = int((diff % 3600) // 60)
+    second = int(diff % 3600 % 60)
     if hour == 0:
         if minute == 0:
-            string_hms = "{}s".format(second)
+            string_hms = "{:d}s".format(second)
         else:
-            string_hms = "{}m{}s".format(minute, second)
+            string_hms = "{:d}m{:d}s".format(minute, second)
     else:
-        string_hms = "{}h{}m{}s".format(hour, minute, second)
+        string_hms = "{:d}h{:d}m{:d}s".format(hour, minute, second)
 
     return string_hms
 

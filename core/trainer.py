@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from core.mil_models import MILArchitecture
 from core.tile_models import get_classifier, Tee
-from tools import calculate_hms
+from utils.tools import calculate_hms
 from utils.dl_tools import BasicTrainer, AverageMeter, ResultReport
 
 sys.path.append('..')
@@ -89,10 +89,10 @@ class TileTrainer(BasicTrainer):
         metric = AverageMeter('{}'.format(self.cfg.metric), ':.5f')
         self.model.train()
 
-        self.logger.info("[Info] Loading Data......")
-        for idx, (images, labels) in enumerate(train_loader):
+        self.logger.info("\n[Info] Loading Data......")
+        for idx, (images, labels) in enumerate(tqdm(train_loader)):
             if idx == 0:
-                self.logger.info("[Info] Loaded Data and cost [{:.4f}min]\n".format((time() - start) / 60))
+                self.logger.info("\n[Info] Loaded Data and cost [{:.4f}min]\n".format((time() - start) / 60))
             images = images.to(self.device)
             labels = labels.to(self.device)
 
@@ -106,12 +106,12 @@ class TileTrainer(BasicTrainer):
             if self.cfg.print_interval > 0 and idx % (len(train_loader) // self.cfg.print_interval) == 0:
                 if idx == 0:
                     interval_start = time()
-                    self.logger.info("[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
+                    self.logger.info("\r[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
                                                                                                       loss.item(),
                                                                                                       self.cfg.metric, metric_))
                 else:
                     interval_end = time()
-                    self.logger.info("[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}] - Cost[{}]".format(epoch, idx, len(train_loader),
+                    self.logger.info("\r[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}] - Cost[{}]".format(epoch, idx, len(train_loader),
                                                                                                                  loss.item(),
                                                                                                                  self.cfg.metric, metric_,
                                                                                                                  calculate_hms(interval_start, interval_end)))
@@ -132,15 +132,15 @@ class TileTrainer(BasicTrainer):
         losses, preds, probs = [], [], []
         gts = []
         self.model.eval()
-        for idx, (images, labels) in enumerate(valid_loader):
+        for idx, (images, labels) in enumerate(tqdm(valid_loader)):
             images = images.to(self.device)
             labels = labels.to(self.device)
 
             outputs = self.model(images)
             loss = self.loss_fn(outputs, labels)
-            preds_, probs_ = self.outputs2label(outputs, labels, get_probs=True)
+            probs_, preds_ = self.outputs2label(outputs, labels, get_probs=True)
 
-            losses.append(loss.item)
+            losses.append(loss.item())
             preds.append(preds_)
             probs.append(probs_)
             gts.append(labels.cpu().numpy())
@@ -160,6 +160,7 @@ class TileTrainer(BasicTrainer):
         pred_probs = pred_labels[:, -1].detach().cpu().numpy()
         pred_labels = (pred_labels.float() > 0.5)
         pred_labels = pred_labels[:, 1].cpu().numpy()
+        pred_labels = np.int32(pred_labels)
         if get_probs:
             return pred_probs, pred_labels
         else:

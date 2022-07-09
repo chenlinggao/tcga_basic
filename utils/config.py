@@ -84,7 +84,7 @@ class TrainConfig(_BasicConfig):
         self.path_parser.add_argument("--data_root", default="/home/msi/disk3/tcga/data/tumor", help="所有图片数据的根目录")
 
     def add_hyper_config(self):
-        self.hyper_parser.add_argument("-e", "--epochs", default=20, type=int, help="[]: 迭代次数")
+        self.hyper_parser.add_argument("-e", "--epochs", default=2, type=int, help="[]: 迭代次数")
         self.hyper_parser.add_argument("-b", "--batch_size", default=512, type=int, help="[]: batch的大小")
         self.hyper_parser.add_argument("-lr", "--learning_rate", default=3e-4, type=float, help="[]: 学习率")
         self.hyper_parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]: ")
@@ -103,15 +103,15 @@ class TrainConfig(_BasicConfig):
         self.component_parser.add_argument("--early_stop_delta", default=3e-4, type=float, help="[]: ")
 
     def add_others_config(self):
-        self.others_parser.add_argument("--train_all", default=1, type=lambda x: bool(strtobool(x)),
+        self.others_parser.add_argument("--train_all", default=0, type=lambda x: bool(strtobool(x)),
                                         help="if set true, will train with all data")
-        self.others_parser.add_argument("--partial", default=0.8, type=float,
+        self.others_parser.add_argument("--partial", default=1, type=lambda x: bool(strtobool(x)),
                                         help="if set true, use few data to train the trained_model")
         self.others_parser.add_argument("--cv", default=5, type=int,
                                         help="set number of fold for cross validation, usually[5, 10]")
         self.others_parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)),
                                         help="if set true, use cross validation")
-        self.others_parser.add_argument("--print_interval", default=10,
+        self.others_parser.add_argument("--print_interval", default=1,
                                         type=int, help="setting for print batch information ")
         self.others_parser.add_argument("--renew_folder", default=0, type=lambda x: bool(strtobool(x)),
                                         help="[]: delete existed folder")

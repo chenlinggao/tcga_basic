@@ -25,7 +25,7 @@ test_transforms = F.Compose([F.ToPILImage(),
 
 param_dataloader = dict(pin_memory=False, num_workers=0)
 
-partial_ratio = 0.8
+partial_ratio = 0.02
 
 
 class TileDataset(Dataset):
