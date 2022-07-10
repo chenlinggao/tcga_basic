@@ -184,7 +184,8 @@ def main(config):
         3. output metrics of prediction
         4. output heatmap (not yet)
     """
-    test_logger = construct_logger(config.test_result_root, log_name="test")
+    test_logger = construct_logger(os.path.join(config.trained_model_root, "logs"),
+                                   log_name="test")
     args_printer(args, test_logger)
     message_output(input_string="\n"
                                 "{:-^100}".format(" Testing "), input_logger=test_logger)

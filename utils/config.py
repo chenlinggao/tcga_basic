@@ -81,7 +81,7 @@ class TrainConfig(_BasicConfig):
         self.task_parser.add_argument("--slide_max_tiles", default=10000, type=int, help="[]: 每个slide最多拿出的tile的数量")
 
     def add_path_config(self):
-        self.path_parser.add_argument("--data_root", default="/home/msi/disk3/tcga/data/tumor", help="所有图片数据的根目录")
+        self.path_parser.add_argument("--data_root", default="", help="所有图片数据的根目录")
 
     def add_hyper_config(self):
         self.hyper_parser.add_argument("-e", "--epochs", default=2, type=int, help="[]: 迭代次数")

@@ -170,7 +170,7 @@ def fuse_slides_tmb_info(config, input_logger=None):
 def setting_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", help="选择任务类型: ['tile', 'mil]",default='mil')
-    parser.add_argument("--data_root", help="所有文件信息的根目录",default="/home/msi/disk3/tcga/data/tumor")
+    parser.add_argument("--data_root", help="所有文件信息的根目录",default="/home/msi/disk3/tcga/data/tumor")         # delete
     parser.add_argument("-m", "--magnification", default=1, type=int, help="病理图的放大倍数，用于计算合适的target_level")
     parser.add_argument("--tile_size", default=512, type=int, help="tile的大小")
     parser.add_argument("--stain_norm", default=0, type=lambda x: bool(strtobool(x)), help="")

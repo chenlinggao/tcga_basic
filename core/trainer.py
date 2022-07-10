@@ -107,14 +107,14 @@ class TileTrainer(BasicTrainer):
                 if idx == 0:
                     interval_start = time()
                     self.logger.info("\r[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}]".format(epoch, idx, len(train_loader),
-                                                                                                      loss.item(),
-                                                                                                      self.cfg.metric, metric_))
+                                                                                                        loss.item(),
+                                                                                                        self.cfg.metric, metric_))
                 else:
                     interval_end = time()
                     self.logger.info("\r[Epoch-{}] batch_idx[{}/{}] - loss[{:.6f}] - {}[{:.6f}] - Cost[{}]".format(epoch, idx, len(train_loader),
-                                                                                                                 loss.item(),
-                                                                                                                 self.cfg.metric, metric_,
-                                                                                                                 calculate_hms(interval_start, interval_end)))
+                                                                                                                   loss.item(),
+                                                                                                                   self.cfg.metric, metric_,
+                                                                                                                   calculate_hms(interval_start, interval_end)))
                     interval_start = interval_end
                 self.tb.add_scalars('interval/train_loss', {'train': losses.avg}, self.print_counter)
                 self.print_counter += 1
