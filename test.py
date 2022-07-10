@@ -4,18 +4,17 @@
 # @Author   : ChenLingHao
 # @File     : test.py
 import os
-from distutils.util import strtobool
-
 import torch
 import argparse
-import pandas as pd
 import numpy as np
+import pandas as pd
+from distutils.util import strtobool
 
-from config import args_printer
 from core.dataset import output_test_loader
 from core.mil_models import MILArchitecture
 from core.tester import Tester
 from core.tile_models import get_classifier
+from utils.config import args_printer
 from utils.dl_tools import ResultReport
 from utils.tools import FolderTool, construct_logger, message_output
 import warnings
@@ -34,9 +33,10 @@ def test_config():
     parser.add_argument("--backbone", default="resnet18", help="[]")
     parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)), help="[]")
     parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]")
-
     parser.add_argument("--target_label_name", default="tmb_label", help="[]")
-    parser.add_argument("--trained_model_name", default="tile_resnet18_tmb_label_512_0.0003_whole", help="[]")
+
+    # delete default
+    parser.add_argument("--trained_model_name", help="[]")
     return parser.parse_args()
 
 def construct_test_folder(config):
@@ -54,9 +54,10 @@ def construct_test_folder(config):
     trained_model_root = os.path.join(result_root, "trained_models", config.trained_model_name)
 
     test_result_root = os.path.join(trained_model_root, "test_result")
+    FolderTool(test_result_root, renew=True).doer()
     test_result_figure = os.path.join(test_result_root, "figure")
     test_result_tiles = os.path.join(test_result_root, "test_tiles_results")
-    FolderTool([test_result_root, test_result_figure, test_result_tiles]).doer()
+    FolderTool([test_result_figure, test_result_tiles]).doer()
 
     config.result_root = result_root
     config.data_root = data_root
@@ -104,8 +105,6 @@ class TestFullFlow:
             if self.cfg.task_type == 'classification':
                 self.model_slides_result.loc[idx, 'prob'] = slide_prob
 
-            if idx == 12:
-                break
 
         self.model_slides_result.to_csv(os.path.join(self.cfg.test_result_root, "test_results.csv"), index=False)  # 保存所有slide的预测结果
 
