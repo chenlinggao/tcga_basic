@@ -20,10 +20,11 @@ def construct_folder(args):
                                                   args.tile_size))              # /project_root/data/
 
     results_root = os.path.join(ab_root, 'results')                             # /project_root/results
-    results_docs = os.path.join(results_root, 'documents')                      # /project_root/results/documents
+    # results_docs = os.path.join(results_root, 'documents')                      # /project_root/results/documents
     results_trained_models = os.path.join(results_root, 'trained_models')       # /project_root/results/trained_models
+    # FolderTool([results_root, results_docs, results_trained_models]).doer()
+    FolderTool([results_root, results_trained_models]).doer()
 
-    FolderTool([results_root, results_docs, results_trained_models]).doer()
     args.project_root = ab_root
     args.data_root = data_root
     args.results_root = results_root

@@ -85,7 +85,7 @@ class TileTestDataset(Dataset):
         slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
                                                  'documents', 'slides_tiles_csv',
                                                  target_slide_id + ".csv"))
-        self.df = slide_tile_df[slide_tile_df == 'tissue'].reset_index(drop=True)
+        self.df = slide_tile_df[slide_tile_df.tile_type == 'tissue'].reset_index(drop=True)
 
     def __getitem__(self, item):
         row = self.df.loc[item, :]
@@ -183,7 +183,7 @@ def dataloader(config, k=0):
 def output_test_loader(config, slide_id):
     if config.task == 'tile':
         test_set = TileTestDataset(config, slide_id)
-        loader = DataLoader(test_set, batch_size=config.batch_size, **param_dataloader)
+        loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, **param_dataloader)
     else:
         test_set = MilTestDataset(config, slide_id)
         loader = DataLoader(test_set, batch_size=1, **param_dataloader)

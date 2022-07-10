@@ -5,6 +5,7 @@
 # @File     : tester.py
 import torch
 import numpy as np
+from tqdm import tqdm
 
 
 class Tester:
@@ -24,14 +25,16 @@ class Tester:
     def tile_predictor(self, trained_model, loader):
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         if self.cfg.task_type == 'classification':
+            trained_model.to(device)
             probs = []
-            for idx, images in enumerate(loader):
+            for idx, images in enumerate(tqdm(loader)):
                 images = images.to(device)
                 outputs = trained_model(images)
-                probs_ = outputs[:, -1].detach().cpu().numpy().float()
+                probs_ = outputs.detach().cpu()
                 probs.append(probs_)
-            probs = np.concatenate(probs, axis=0)
-            return probs
+            probs = torch.cat(probs).softmax(1)
+            probs = probs.numpy()
+            return probs[:, 1]
         else:
             raise NotImplementedError
 
@@ -39,7 +42,7 @@ class Tester:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         if self.cfg.task_type == 'classification':
             probs = []
-            for idx, features in enumerate(loader):
+            for idx, features in enumerate(tqdm(loader)):
                 features = features.to(device)
                 outputs, attention_weight = trained_model(features, return_attention=True)
                 outputs = outputs.softmax(dim=1).detach().cpu().numpy()

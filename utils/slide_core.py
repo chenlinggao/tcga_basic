@@ -135,7 +135,7 @@ class SlideProcessor(SlideReader):
         self.slide_id = self.slide_name.split('.')[0]
         self.case_id = self.slide_name[:12]
         self.slides_info_df = all_slides_info_df
-        self.slide_tiles_df = pd.DataFrame([], columns=['tile_id', 'case_id', 'coordination', 'slide_id', 'tile_type', 'tile_path'])
+        self.slide_tiles_df = pd.DataFrame([], columns=['tile_id', 'case_id', 'coordination', 'slide_id', 'tile_type'])
         self.tiles_count_all = 0
         self.tiles_count_tissue = 0
 
@@ -196,9 +196,6 @@ class SlideProcessor(SlideReader):
                     # cv2.imwrite("{}/{}.png".format(slide_dst+'/background', tile_id), tile_array)
                     self.record_tiles_info(tile_id=tile_id, coor=start_point, tile_type=tile_type)
                     continue
-
-                # color norm ------------------------------------------------
-                # normed_tile = self.stain_normalizer.fit(tile_array)
 
                 # quality assess ------------------------------------------------
 

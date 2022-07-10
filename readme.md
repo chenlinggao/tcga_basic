@@ -2,10 +2,11 @@
 
 ## To-Do
 
-- [ ] 要不要打包成docker(考虑环境和别的问题)
+- [ ] 打包成docker
 - [x] 把预处理流程打包在一起
 - [ ] 处理表格的名字的问题`[:12], slide_id, case_id...`
 - [ ] 加上xml的代码
+- [ ] 在data_preparation那里需要对slide id进行调整
 
 ## 结果
 

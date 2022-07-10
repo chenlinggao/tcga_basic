@@ -4,21 +4,23 @@
 # @Author   : ChenLingHao
 # @File     : test.py
 import os
+from distutils.util import strtobool
+
 import torch
 import argparse
 import pandas as pd
 import numpy as np
-from glob import glob
 
-import cv2
-import matplotlib.pyplot as plt
-
+from config import args_printer
 from core.dataset import output_test_loader
 from core.mil_models import MILArchitecture
 from core.tester import Tester
 from core.tile_models import get_classifier
 from utils.dl_tools import ResultReport
 from utils.tools import FolderTool, construct_logger, message_output
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def test_config():
@@ -26,15 +28,23 @@ def test_config():
     parser.add_argument("--task", default="tile", help="[]")
     parser.add_argument("--magnification", default=1, type=int, help="[]")
     parser.add_argument("--tile_size", default=512, type=int, help="[]")
-    parser.add_argument("--trained_model_name", default="tile_resnet18_tmb_label_128_0.0003", help="[]")
+    parser.add_argument("--resize_img", default=224, type=int, help="[]")
+    parser.add_argument("--batch_size", default=256, type=int, help="[]")
+
+    parser.add_argument("--backbone", default="resnet18", help="[]")
+    parser.add_argument("--use_cv", default=0, type=lambda x: bool(strtobool(x)), help="[]")
+    parser.add_argument("--pretrained", default=1, type=lambda x: bool(strtobool(x)), help="[]")
+
     parser.add_argument("--target_label_name", default="tmb_label", help="[]")
-    parser.add_argument("--batch_size", default=128, type=int, help="[]")
+    parser.add_argument("--trained_model_name", default="tile_resnet18_tmb_label_512_0.0003_whole", help="[]")
     return parser.parse_args()
 
 def construct_test_folder(config):
     if config.target_label_name.split('_')[-1] == "label":
+        config.num_classes = 2
         config.task_type = "classification"
     elif config.target_label_name.split('_')[-1] == "score":
+        config.num_classes = 1
         config.task_type = "regression"
 
     project_root = os.path.abspath("..")
@@ -48,10 +58,11 @@ def construct_test_folder(config):
     test_result_tiles = os.path.join(test_result_root, "test_tiles_results")
     FolderTool([test_result_root, test_result_figure, test_result_tiles]).doer()
 
-    config.data_root = data_root
     config.result_root = result_root
+    config.data_root = data_root
     config.trained_model_root = trained_model_root
     config.test_result_root = test_result_root
+    config.test_result_tiles = test_result_tiles
     return config
 
 
@@ -62,11 +73,7 @@ class TestFullFlow:
                                       'fused_slides_gene_info_all.csv'))
         self.test_df = df[df.phase == 'test'].reset_index(drop=True)
 
-        model_slides_result = os.path.join(config.trained_model_root, "test_results.csv")
-        if not os.path.exists(model_slides_result):
-            self.model_slides_result = pd.DataFrame([])
-        else:
-            self.model_slides_result = pd.read_csv(model_slides_result)
+        self.model_slides_result = pd.DataFrame([])
         self.logger = logger
 
     def fit(self):
@@ -74,10 +81,11 @@ class TestFullFlow:
         probs, preds = [], []
         model = self.output_model()
         for idx, row in self.test_df.iterrows():
+            # for each slide
             slide_id = row['slide_id']
             message_output("[{}/{}]: Processing {} ".format(idx+1, len(self.test_df), slide_id),
                            input_logger=self.logger)
-            label = row[self.cfg.target_label_name]
+            label = int(row[self.cfg.target_label_name])
             labels.append(label)
 
             # if self.cfg.task == 'tile':
@@ -86,7 +94,8 @@ class TestFullFlow:
             preds.append(slide_label)
 
             if self.cfg.task == 'tile':
-                self.save_slide_result(slide_id, tiles_probabilities=tile_probs, slide_gt_label=label)  # 保存tile的预测信息
+                # 保存tile的预测信息
+                self.save_tiles_result(slide_id, tiles_probabilities=tile_probs, slide_gt_label=label)
 
             # 保存slide的预测信息
             self.model_slides_result.loc[idx, 'slide_id'] = slide_id
@@ -95,12 +104,17 @@ class TestFullFlow:
             if self.cfg.task_type == 'classification':
                 self.model_slides_result.loc[idx, 'prob'] = slide_prob
 
+            if idx == 12:
+                break
+
+        self.model_slides_result.to_csv(os.path.join(self.cfg.test_result_root, "test_results.csv"), index=False)  # 保存所有slide的预测结果
+
         # 保存所有的模型信息
         result_dict = ResultReport(ground_truth=labels, pred_probabilities=probs, pred_label=preds).calculate_results()
         result_dict.update({"model": self.cfg.trained_model_name})
 
-        total_result_csv = os.path.join(self.cfg.test_results_root, "models_results.csv")
-        if os.path.exists(total_result_csv):
+        total_result_csv = os.path.join(self.cfg.result_root, "models_results.csv")
+        if not os.path.exists(total_result_csv):
             total_result_df = pd.DataFrame([])
             length_df = 0
         else:
@@ -129,15 +143,15 @@ class TestFullFlow:
         else:
             raise NotImplementedError
 
-    def save_slide_result(self, slide_id, tiles_probabilities, slide_gt_label):
-        # 保存tile的指标信息
-        labels = np.full_like(tiles_probabilities, slide_gt_label)
-        tile_preds = np.int32(tiles_probabilities > 0.5)
-        tiles_result = ResultReport(ground_truth=labels,
-                                    pred_probabilities=tiles_probabilities,
-                                    pred_label=tile_preds).calculate_results()
-        result_df = pd.DataFrame(tiles_result)
-        result_df.to_csv(os.path.join(self.cfg.test_result_tiles, slide_id+".csv"), index=False)
+    def save_tiles_result(self, slide_id, tiles_probabilities, slide_gt_label):
+        # 保存每个tile个预测概率
+        labels = np.full_like(tiles_probabilities, slide_gt_label, dtype=np.int32)
+        slide_tile_df = pd.read_csv(os.path.join(self.cfg.data_root,
+                                                 'documents', 'slides_tiles_csv', slide_id + ".csv"))
+        target_df = slide_tile_df[slide_tile_df.tile_type == 'tissue']
+        target_df['probs'] = tiles_probabilities
+        target_df['label'] = labels
+        slide_tile_df.to_csv(os.path.join(self.cfg.test_result_tiles, slide_id+".csv"), index=False)
 
     @staticmethod
     def tiles_probs_to_label(probabilities):
@@ -149,7 +163,7 @@ class TestFullFlow:
 
     def output_model(self):
         if not self.cfg.use_cv:
-            trained_info = torch.load(os.path.join(self.cfg.trained_model_root, 'checkpoints', 'checkpoint_0.pth'))
+            trained_info = torch.load(os.path.join(self.cfg.trained_model_root, 'checkpoints', 'checkpoint_final.pth'))
             if self.cfg.task == 'tile':
                 model = get_classifier(self.cfg)
                 model.load_state_dict(trained_info['model_dict'])
@@ -159,7 +173,7 @@ class TestFullFlow:
             else:
                 raise NotImplementedError
         else:
-            # 不是交叉验证
+            # 交叉验证
             raise NotImplementedError
         return model
 
@@ -172,6 +186,7 @@ def main(config):
         4. output heatmap (not yet)
     """
     test_logger = construct_logger(config.test_result_root, log_name="test")
+    args_printer(args, test_logger)
     message_output(input_string="\n"
                                 "{:-^100}".format(" Testing "), input_logger=test_logger)
     tester = TestFullFlow(config, logger=test_logger)
